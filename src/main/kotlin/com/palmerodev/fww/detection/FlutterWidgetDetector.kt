@@ -37,26 +37,25 @@ object FlutterWidgetDetector {
         val n = text.length
         var i = 0
         while (i < n) {
-            val c = text[i]
-            when {
-                c == '/' && i + 1 < n && text[i + 1] == '/' -> {
+            when (val c = text[i]) {
+                '/' if i + 1 < n && text[i + 1] == '/' -> {
                     i += 2
                     while (i < n && text[i] != '\n') i++
                 }
-                c == '/' && i + 1 < n && text[i + 1] == '*' -> {
+                '/' if i + 1 < n && text[i + 1] == '*' -> {
                     i += 2
                     while (i + 1 < n && !(text[i] == '*' && text[i + 1] == '/')) i++
                     i = (i + 2).coerceAtMost(n)
                 }
-                c == '"' || c == '\'' -> {
+                '"', '\'' -> {
                     i = skipString(text, i, c)
                 }
-                c == '(' -> {
+                '(' -> {
                     val (name, nameStart) = lookBackForCallee(text, i)
                     stack.addLast(Frame(name, nameStart ?: i))
                     i++
                 }
-                c == ')' -> {
+                ')' -> {
                     val frame = stack.removeLastOrNull()
                     if (frame?.name != null && isWidgetName(frame.name)) {
                         val ancestorNames = stack

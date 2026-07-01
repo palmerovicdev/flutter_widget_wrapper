@@ -11,7 +11,7 @@ object BuiltInWrappers {
                 "AnimatedSize(",
                 "  duration: const Duration(milliseconds: 300),",
                 "  curve: Curves.easeInOut,",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with AnimatedSize",
@@ -22,7 +22,7 @@ object BuiltInWrappers {
             template = listOf(
                 "GestureDetector(",
                 "  onTap: () {},",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with GestureDetector",
@@ -33,7 +33,7 @@ object BuiltInWrappers {
             template = listOf(
                 "InkWell(",
                 "  onTap: () {},",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with InkWell",
@@ -45,7 +45,7 @@ object BuiltInWrappers {
             template = listOf(
                 "Align(",
                 "  alignment: Alignment.center,",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with Align",
@@ -55,7 +55,7 @@ object BuiltInWrappers {
             name = "Expanded",
             template = listOf(
                 "Expanded(",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with Expanded",
@@ -67,7 +67,7 @@ object BuiltInWrappers {
             name = "Flexible",
             template = listOf(
                 "Flexible(",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with Flexible",
@@ -80,7 +80,7 @@ object BuiltInWrappers {
             template = listOf(
                 "Stack(",
                 "  children: [",
-                "    \${widget},",
+                $$"    ${widget},",
                 "  ],",
                 ")",
             ),
@@ -92,7 +92,7 @@ object BuiltInWrappers {
             template = listOf(
                 "Opacity(",
                 "  opacity: 0.5,",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with Opacity",
@@ -102,7 +102,7 @@ object BuiltInWrappers {
             name = "SingleChildScrollView",
             template = listOf(
                 "SingleChildScrollView(",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with SingleChildScrollView",
@@ -112,7 +112,7 @@ object BuiltInWrappers {
             name = "SafeArea",
             template = listOf(
                 "SafeArea(",
-                "  child: \${widget},",
+                $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with SafeArea",

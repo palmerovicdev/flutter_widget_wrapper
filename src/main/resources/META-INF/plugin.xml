@@ -9,9 +9,17 @@
         url="https://github.com/palmerodev">Víctor Manuel Palmero Valdés</vendor>
 
     <description><![CDATA[
-        Wrap Flutter widgets from the Alt+Enter context menu with SafeArea, Expanded, Opacity,
-        AnimatedSize and other layout/interaction wrappers. Context-aware: Expanded and Flexible
-        only appear inside Row, Column or Flex. Supports custom user-defined wrappers via JSON.
+        Add context-aware Flutter widget wrappers to the Alt+Enter intention menu. Wrap widgets
+        without manually moving code, fixing indentation, or rebuilding constructors.
+
+        Includes built-in wrappers such as Align, AnimatedSize, Expanded, Flexible,
+        GestureDetector, InkWell, Opacity, SafeArea, SingleChildScrollView, and Stack. Wrappers
+        are shown only where they are valid; for example, Expanded and Flexible are offered only
+        for direct children of Row, Column, or Flex.
+
+        Enable or disable built-in wrappers, create custom wrappers with validation and preview,
+        and import or export wrapper definitions as JSON. You can also turn an existing Flutter
+        widget into a reusable custom wrapper.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

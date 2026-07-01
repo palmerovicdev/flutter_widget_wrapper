@@ -29,8 +29,6 @@ object WrapperJsonCodec {
         return PRETTY_GSON.toJson(array)
     }
 
-    fun encodeSingle(wrapper: WidgetWrapper): String = PRETTY_GSON.toJson(encodeWrapper(wrapper))
-
     private fun encodeWrapper(w: WidgetWrapper): JsonObject {
         val obj = JsonObject()
         obj.addProperty("name", w.name)

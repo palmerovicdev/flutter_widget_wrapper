@@ -5,6 +5,15 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-01
+
+### Fixed
+
+- Dynamic wrapper intentions now use distinct implementation identities, preventing
+  IntelliJ Platform from rejecting multiple registered wrappers.
+- Updated Kotlin string templates for compatibility with the current compiler.
+- Settings controls now use IDE-scaled insets for consistent UI rendering.
+
 ## [1.1.0] - 2026-07-01
 
 ### Added

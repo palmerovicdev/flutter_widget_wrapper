@@ -79,7 +79,7 @@ class WrapperFormDialog(
             gridy = row++
             fill = GridBagConstraints.HORIZONTAL
             weightx = 1.0
-            insets = Insets(0, 4, 8, 0)
+            insets = JBUI.insets(0, 4, 8, 0)
         }
         panel.add(hint, hintGbc)
 
@@ -104,7 +104,7 @@ class WrapperFormDialog(
             gridx = 0
             gridy = row
             anchor = GridBagConstraints.NORTHWEST
-            insets = Insets(4, 4, 4, 8)
+            insets = JBUI.insets(4, 4, 4, 8)
         }
         panel.add(JBLabel(FlutterWidgetWrapperBundle.message(labelKey)), labelGbc)
 
@@ -114,7 +114,7 @@ class WrapperFormDialog(
             weightx = 1.0
             fill = if (fillVertical) GridBagConstraints.BOTH else GridBagConstraints.HORIZONTAL
             if (fillVertical) weighty = 1.0
-            insets = Insets(4, 0, 4, 4)
+            insets = JBUI.insets(4, 0, 4, 4)
         }
         panel.add(component, fieldGbc)
     }
@@ -134,7 +134,7 @@ class WrapperFormDialog(
                 nameField,
             )
         }
-        if (!templateArea.text.contains("\${widget}")) {
+        if (!templateArea.text.contains($$"${widget}")) {
             return ValidationInfo(
                 FlutterWidgetWrapperBundle.message("settings.form.error.template"),
                 templateArea,

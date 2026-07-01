@@ -4,7 +4,7 @@ import com.palmerodev.fww.model.WidgetWrapper
 
 object WrapperValidator {
 
-    private const val PLACEHOLDER = "\${widget}"
+    private const val PLACEHOLDER = $$"${widget}"
 
     sealed interface Result {
         data object Ok : Result

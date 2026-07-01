@@ -4,7 +4,7 @@ import com.palmerodev.fww.model.WidgetWrapper
 
 object WrapperTemplateEngine {
 
-    private const val PLACEHOLDER = "\${widget}"
+    private const val PLACEHOLDER = $$"${widget}"
 
     fun apply(wrapper: WidgetWrapper, widgetText: String, baseIndent: String): String {
         val widgetLines = widgetText.lines()

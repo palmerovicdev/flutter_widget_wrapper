@@ -39,7 +39,7 @@ class WrapIntentionRegistrar : ProjectActivity {
                 }
                 for (name in allNames) {
                     if (registeredNames.add(name)) {
-                        manager.addAction(WrapWithWidgetIntention(name))
+                        manager.addAction(RegisteredWrapWithWidgetIntention(name))
                     }
                 }
             }

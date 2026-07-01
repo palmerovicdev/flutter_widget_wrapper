@@ -42,7 +42,7 @@ class CreateWrapperFromWidgetIntention : BaseIntentionAction() {
         val detected = FlutterWidgetDetector.detect(file.name, editor.document.text, offset) ?: return
         val field = WrappableFieldDetector.find(detected.text) ?: return
 
-        val replacement = if (field.isList) "[\${widget}]" else "\${widget}"
+        val replacement = if (field.isList) $$"[${widget}]" else $$"${widget}"
         val templated = detected.text.substring(0, field.valueStart) +
             replacement +
             detected.text.substring(field.valueEnd)

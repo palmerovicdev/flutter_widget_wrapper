@@ -143,7 +143,7 @@ class WrapperSettingsConfigurable : Configurable {
 
         val docs = JBLabel(DOCS_HTML)
         docs.verticalAlignment = JBLabel.TOP
-        docs.border = JBUI.Borders.empty(4, 8, 4, 8)
+        docs.border = JBUI.Borders.empty(4, 8)
         panel.add(docs, BorderLayout.CENTER)
 
         return panel
@@ -401,38 +401,6 @@ class WrapperSettingsConfigurable : Configurable {
         .keys
         .toMutableSet()
 
-    companion object {
-        private val DOCS_HTML = """
-            <html>
-            <body style='width: 640px'>
-            A wrapper is a JSON object inside a top-level array (<code>[ ... ]</code>).
-            Each entry describes a widget that can wrap another via the Alt+Enter menu.
-            <br><br>
-            <b>Required fields</b>
-            <ul>
-              <li><code>name</code> — unique name shown in the intention menu.</li>
-              <li><code>template</code> — string or array of lines. Must contain
-                  <code>&#36;{widget}</code>, which is replaced by the wrapped widget.</li>
-            </ul>
-            <b>Optional fields</b>
-            <ul>
-              <li><code>description</code> — short human description.</li>
-              <li><code>category</code> — grouping label (default <code>Custom</code>).</li>
-              <li><code>enabled</code> — boolean, default <code>true</code>.</li>
-              <li><code>allowedParents</code> — list of parent widget names.
-                  Use <code>["any"]</code> (default) or names like
-                  <code>["Row","Column","Flex"]</code>.</li>
-              <li><code>disallowedParents</code> — parents that block the wrapper.</li>
-              <li><code>requiresDirectParent</code> — requires
-                  <code>allowedParents</code> to be the immediate parent.</li>
-              <li><code>warning</code> — tooltip warning shown to the user.</li>
-            </ul>
-            Use the <b>Add wrapper…</b> button below to fill a form instead of
-            editing JSON by hand.
-            </body>
-            </html>
-        """.trimIndent()
-    }
 }
 
 internal class WrapperPreviewDialog(private val wrappers: List<WidgetWrapper>) :
@@ -472,3 +440,34 @@ internal class WrapperPreviewDialog(private val wrappers: List<WidgetWrapper>) :
         preview.text = WrapperTemplateEngine.apply(wrapper, "Text('Hello')", "")
     }
 }
+
+private val DOCS_HTML = """
+    <html>
+    <body style='width: 640px'>
+    A wrapper is a JSON object inside a top-level array (<code>[ ... ]</code>).
+    Each entry describes a widget that can wrap another via the Alt+Enter menu.
+    <br><br>
+    <b>Required fields</b>
+    <ul>
+      <li><code>name</code> — unique name shown in the intention menu.</li>
+      <li><code>template</code> — string or array of lines. Must contain
+          <code>&#36;{widget}</code>, which is replaced by the wrapped widget.</li>
+    </ul>
+    <b>Optional fields</b>
+    <ul>
+      <li><code>description</code> — short human description.</li>
+      <li><code>category</code> — grouping label (default <code>Custom</code>).</li>
+      <li><code>enabled</code> — boolean, default <code>true</code>.</li>
+      <li><code>allowedParents</code> — list of parent widget names.
+          Use <code>["any"]</code> (default) or names like
+          <code>["Row","Column","Flex"]</code>.</li>
+      <li><code>disallowedParents</code> — parents that block the wrapper.</li>
+      <li><code>requiresDirectParent</code> — requires
+          <code>allowedParents</code> to be the immediate parent.</li>
+      <li><code>warning</code> — tooltip warning shown to the user.</li>
+    </ul>
+    Use the <b>Add wrapper…</b> button below to fill a form instead of
+    editing JSON by hand.
+    </body>
+    </html>
+""".trimIndent()
