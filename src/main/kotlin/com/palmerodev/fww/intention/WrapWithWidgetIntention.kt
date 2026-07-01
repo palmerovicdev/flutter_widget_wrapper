@@ -9,44 +9,31 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.palmerodev.fww.detection.FlutterContextAnalyzer
 import com.palmerodev.fww.detection.FlutterWidgetDetector
-import com.palmerodev.fww.model.FlutterWidgetContext
-import com.palmerodev.fww.model.WidgetWrapper
+import com.palmerodev.fww.wrappers.WrapperContextMatcher
+import com.palmerodev.fww.wrappers.WrapperRepository
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
 
-class WrapWithWidgetIntention(private val wrapper: WidgetWrapper) : BaseIntentionAction() {
+class WrapWithWidgetIntention(private val wrapperName: String) : BaseIntentionAction() {
 
     override fun getFamilyName(): String = "Wrap Flutter widget"
 
-    override fun getText(): String = "Wrap with ${wrapper.name}"
+    override fun getText(): String = "Wrap with $wrapperName"
 
     override fun startInWriteAction(): Boolean = true
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        if (!wrapper.enabled) return false
         if (editor == null || file == null) return false
         if (!file.name.endsWith(".dart")) return false
+        val wrapper = WrapperRepository.byName(wrapperName) ?: return false
         val offset = editor.caretModel.offset
         val detected = FlutterWidgetDetector.detect(file.name, editor.document.text, offset) ?: return false
         val context = FlutterContextAnalyzer.analyze(detected)
-        return matchesContext(context)
-    }
-
-    private fun matchesContext(ctx: FlutterWidgetContext): Boolean {
-        if (ctx.parentWidgetName != null && ctx.parentWidgetName in wrapper.disallowedParents) return false
-        if (wrapper.requiresDirectParent) {
-            val direct = ctx.parentWidgetName ?: return false
-            return direct in wrapper.allowedParents
-        }
-        if ("any" in wrapper.allowedParents) return true
-        val chain = buildList {
-            ctx.parentWidgetName?.let { add(it) }
-            addAll(ctx.ancestors)
-        }
-        return chain.any { it in wrapper.allowedParents }
+        return WrapperContextMatcher.matches(wrapper, context)
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         if (editor == null || file == null) return
+        val wrapper = WrapperRepository.byName(wrapperName) ?: return
         val document = editor.document
         val text = document.text
         val offset = editor.caretModel.offset

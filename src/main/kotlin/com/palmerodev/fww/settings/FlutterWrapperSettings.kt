@@ -15,6 +15,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 class FlutterWrapperSettings : PersistentStateComponent<FlutterWrapperSettings> {
 
     var customWrappersJson: String = ""
+    var disabledBuiltInNames: MutableSet<String> = mutableSetOf()
 
     override fun getState(): FlutterWrapperSettings = this
 

@@ -19,6 +19,11 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.palmerodev.fww.settings.FlutterWrapperSettings"/>
+        <applicationConfigurable
+            parentId="tools"
+            id="com.palmerodev.fww.settings"
+            displayName="Flutter Widget Wrapper"
+            instance="com.palmerodev.fww.settings.WrapperSettingsConfigurable"/>
         <postStartupActivity implementation="com.palmerodev.fww.intention.WrapIntentionRegistrar"/>
     </extensions>
 

@@ -19,3 +19,9 @@ dependencies {
         // bundledPlugin("com.intellij.java")
     }
 }
+
+tasks {
+    buildSearchableOptions {
+        enabled = false
+    }
+}
