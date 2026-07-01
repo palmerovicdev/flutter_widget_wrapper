@@ -4,7 +4,9 @@
 
     <name>Flutter Widget Wrapper</name>
 
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
+    <vendor
+        email="palmerodev@gmail.com"
+        url="https://github.com/palmerodev">Víctor Manuel Palmero Valdés</vendor>
 
     <description><![CDATA[
         Wrap Flutter widgets from the Alt+Enter context menu with SafeArea, Expanded, Opacity,

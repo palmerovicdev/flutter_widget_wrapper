@@ -1,123 +1,122 @@
-# Flutter_widget_wrapper
+# Flutter Widget Wrapper
 
-[![Twitter Follow](https://img.shields.io/badge/follow-%40JBPlatform-1DA1F2?logo=twitter)](https://twitter.com/JBPlatform)
-[![Developers Forum](https://img.shields.io/badge/JetBrains%20Platform-Join-blue)][jb:forum]
+Flutter Widget Wrapper is an IntelliJ Platform plugin that adds context-aware
+Flutter widget wrappers to the `Alt+Enter` intention menu. Wrap a widget without
+manually moving code, fixing indentation, or rebuilding its constructor.
 
-## Plugin structure
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2026.1%2B-purple)
 
-A generated project contains the following content structure:
+## Features
 
+- Wrap Flutter widgets directly from the `Alt+Enter` menu.
+- Includes `Align`, `AnimatedSize`, `Expanded`, `Flexible`,
+  `GestureDetector`, `InkWell`, `Opacity`, `SafeArea`,
+  `SingleChildScrollView`, and `Stack`.
+- Shows context-sensitive wrappers only where they are valid. For example,
+  `Expanded` and `Flexible` are offered only for direct children of `Row`,
+  `Column`, or `Flex`.
+- Preserves indentation and reformats the generated Dart code.
+- Lets you enable or disable built-in wrappers.
+- Supports custom wrappers with validation, preview, and JSON import/export.
+- Creates a reusable custom wrapper from an existing Flutter widget.
+
+## Usage
+
+1. Place the caret inside a Flutter widget in a `.dart` file.
+2. Press `Alt+Enter` (`Option+Enter` on macOS).
+3. Select **Wrap with _WidgetName_**.
+
+The plugin replaces the selected widget with the chosen wrapper and runs the
+IDE formatter on the resulting code.
+
+![Flutter widget wrapper intentions](assets/example.png)
+
+## Configuration
+
+Open **Settings/Preferences | Tools | Flutter Widget Wrapper** to:
+
+- choose which built-in wrappers appear in the intention menu;
+- add, edit, preview, or delete custom wrappers;
+- edit the complete wrapper list as JSON;
+- import or export custom wrapper definitions.
+
+![Flutter Widget Wrapper settings](assets/settings.png)
+
+### Add a wrapper
+
+Select **Add wrapper...** to create a custom wrapper using the visual editor.
+The dialog supports templates, parent restrictions, direct-parent requirements,
+categories, descriptions, and optional warning tooltips.
+
+![Create a custom Flutter widget wrapper](assets/addWrapper.png)
+
+### Custom wrapper example
+
+Every custom wrapper needs a unique `name` and a `template` containing the
+`${widget}` placeholder:
+
+```json
+[
+  {
+    "name": "Card",
+    "description": "Wraps with Card",
+    "category": "Visual",
+    "template": [
+      "Card(",
+      "  child: ${widget},",
+      ")"
+    ]
+  }
+]
 ```
-.
-├── .run/                   Predefined Run/Debug Configurations
-├── build/                  Output build directory
-├── gradle
-│   ├── wrapper/            Gradle Wrapper
-│   ├── libs.versions.toml  Version catalog
-├── src                     Plugin sources
-│   ├── main
-│   │   ├── kotlin/         Kotlin production sources
-│   │   └── resources/      Resources - plugin.xml, icons, messages
-├── .gitignore              Git ignoring rules
-├── build.gradle.kts        Gradle build configuration
-├── gradle.properties       Gradle configuration properties
-├── gradlew                 *nix Gradle Wrapper script
-├── gradlew.bat             Windows Gradle Wrapper script
-├── README.md               README
-└── settings.gradle.kts     Gradle project settings
+
+Optional fields include `enabled`, `allowedParents`, `disallowedParents`,
+`requiresDirectParent`, and `warning`. Wrapper templates can be entered as a
+string or as an array of lines.
+
+To create a wrapper from existing Dart code, place the caret in a widget whose
+content is stored in `child`, `children`, `builder`, or `itemBuilder`, open
+`Alt+Enter`, and choose **Create wrapper from _WidgetName_**.
+
+## Installation
+
+### From a distribution
+
+1. Open **Settings/Preferences | Plugins**.
+2. Select the gear icon and choose **Install Plugin from Disk...**.
+3. Select the plugin ZIP file and restart the IDE when prompted.
+
+The Dart plugin must be enabled for Flutter source-file integration.
+
+### Build from source
+
+This project uses the Gradle Wrapper:
+
+```bash
+./gradlew buildPlugin
 ```
 
-In addition to the configuration files, the most crucial part is the `src`
-directory, which contains our implementation and the manifest for our
-plugin – [plugin.xml][file:plugin.xml].
+The generated plugin distribution is written to `build/distributions/`.
 
-> [!NOTE]
-> To use Java in your plugin, create the `/src/main/java` directory.
+To launch a sandbox IDE with the plugin installed:
 
-## Plugin configuration file
+```bash
+./gradlew runIde
+```
 
-The plugin configuration file is a [plugin.xml][file:plugin.xml] file located in
-the `src/main/resources/META-INF` directory.
-It provides general information about the plugin, its dependencies, extensions,
-and listeners.
+## Compatibility
 
-You can read more about this file in
-the [Plugin Configuration File][docs:plugin.xml] section of our documentation.
+- IntelliJ Platform `2026.1` or later
+- IDEs that support the Dart plugin
+- Flutter projects using Dart source files
 
-If you're still not quite sure what this is all about,
-read [Introduction to IntelliJ Platform][docs:intro].
+## Author and publisher
 
-## Predefined Run/Debug configurations
+Developed and published by
+[Víctor Manuel Palmero Valdés](https://github.com/palmerodev).
 
-Within the default project structure, there is a `.run` directory provided
-containing predefined *Run/Debug configurations* that expose corresponding
-Gradle tasks:
+## License
 
-| Configuration name | Description                                                                                                                                                                         |
-|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Run Plugin         | Runs [`:runIde`][gh:intellij-platform-gradle-plugin-runIde] IntelliJ Platform Gradle Plugin task. Use the *Debug* icon for plugin debugging.                                        |
-| Run Tests          | Runs [`:check`][gradle:lifecycle-tasks] Gradle task.                                                                                                                                |
-| Run Verifications  | Runs [`:verifyPlugin`][gh:intellij-platform-gradle-plugin-verifyPlugin] IntelliJ Platform Gradle Plugin task to check the plugin compatibility against the specified IntelliJ IDEs. |
-
-> [!NOTE]
-> You can find the logs from the running task in the `idea.log` tab.
-
-## Publishing the plugin
-
-> [!TIP]
-> Make sure to follow all guidelines listed
-> in [Publishing a Plugin][docs:publishing] to follow all recommended and required
-> steps.
-
-Releasing a plugin to [JetBrains Marketplace](https://plugins.jetbrains.com) is
-a straightforward operation that uses the `publishPlugin` Gradle task provided
-by
-the [intellij-platform-gradle-plugin][gh:intellij-platform-gradle-plugin-docs].
-
-You can also upload the plugin to
-the [JetBrains Plugin Repository](https://plugins.jetbrains.com/plugin/upload)
-manually via UI.
-
-## Useful links
-
-- [IntelliJ Platform SDK Plugin SDK][docs]
-- [IntelliJ Platform Gradle Plugin Documentation][gh:intellij-platform-gradle-plugin-docs]
-- [IntelliJ Platform Explorer][jb:ipe]
-- [JetBrains Marketplace Quality Guidelines][jb:quality-guidelines]
-- [IntelliJ Platform UI Guidelines][jb:ui-guidelines]
-- [JetBrains Marketplace Paid Plugins][jb:paid-plugins]
-- [IntelliJ SDK Code Samples][gh:code-samples]
-
-[docs]: https://plugins.jetbrains.com/docs/intellij
-
-[docs:intro]: https://plugins.jetbrains.com/docs/intellij/intellij-platform.html?from=IJPluginTemplate
-
-[docs:plugin.xml]: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html?from=IJPluginTemplate
-
-[docs:publishing]: https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate
-
-[file:plugin.xml]: ./src/main/resources/META-INF/plugin.xml
-
-[gh:code-samples]: https://github.com/JetBrains/intellij-sdk-code-samples
-
-[gh:intellij-platform-gradle-plugin]: https://github.com/JetBrains/intellij-platform-gradle-plugin
-
-[gh:intellij-platform-gradle-plugin-docs]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
-
-[gh:intellij-platform-gradle-plugin-runIde]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#runIde
-
-[gh:intellij-platform-gradle-plugin-verifyPlugin]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#verifyPlugin
-
-[gradle:lifecycle-tasks]: https://docs.gradle.org/current/userguide/java_plugin.html#lifecycle_tasks
-
-[jb:github]: https://github.com/JetBrains/.github/blob/main/profile/README.md
-
-[jb:forum]: https://platform.jetbrains.com/
-
-[jb:quality-guidelines]: https://plugins.jetbrains.com/docs/marketplace/quality-guidelines.html
-
-[jb:paid-plugins]: https://plugins.jetbrains.com/docs/marketplace/paid-plugins-marketplace.html
-
-[jb:ipe]: https://jb.gg/ipe
-
-[jb:ui-guidelines]: https://jetbrains.github.io/ui
+Released under the [MIT License](LICENSE).
