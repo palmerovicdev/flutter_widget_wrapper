@@ -1,0 +1,122 @@
+package com.palmerodev.fww.wrappers
+
+import com.palmerodev.fww.model.WidgetWrapper
+
+object BuiltInWrappers {
+
+    val ALL: List<WidgetWrapper> = listOf(
+        WidgetWrapper(
+            name = "AnimatedSize",
+            template = listOf(
+                "AnimatedSize(",
+                "  duration: const Duration(milliseconds: 300),",
+                "  curve: Curves.easeInOut,",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with AnimatedSize",
+            category = "Animation",
+        ),
+        WidgetWrapper(
+            name = "GestureDetector",
+            template = listOf(
+                "GestureDetector(",
+                "  onTap: () {},",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with GestureDetector",
+            category = "Interaction",
+        ),
+        WidgetWrapper(
+            name = "InkWell",
+            template = listOf(
+                "InkWell(",
+                "  onTap: () {},",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with InkWell",
+            category = "Interaction",
+            warning = "InkWell needs a Material ancestor for ripple effects to be visible.",
+        ),
+        WidgetWrapper(
+            name = "Align",
+            template = listOf(
+                "Align(",
+                "  alignment: Alignment.center,",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with Align",
+            category = "Layout",
+        ),
+        WidgetWrapper(
+            name = "Expanded",
+            template = listOf(
+                "Expanded(",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with Expanded",
+            category = "Layout",
+            allowedParents = listOf("Row", "Column", "Flex"),
+            requiresDirectParent = true,
+        ),
+        WidgetWrapper(
+            name = "Flexible",
+            template = listOf(
+                "Flexible(",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with Flexible",
+            category = "Layout",
+            allowedParents = listOf("Row", "Column", "Flex"),
+            requiresDirectParent = true,
+        ),
+        WidgetWrapper(
+            name = "Stack",
+            template = listOf(
+                "Stack(",
+                "  children: [",
+                "    \${widget},",
+                "  ],",
+                ")",
+            ),
+            description = "Wraps with Stack",
+            category = "Layout",
+        ),
+        WidgetWrapper(
+            name = "Opacity",
+            template = listOf(
+                "Opacity(",
+                "  opacity: 0.5,",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with Opacity",
+            category = "Visual",
+        ),
+        WidgetWrapper(
+            name = "SingleChildScrollView",
+            template = listOf(
+                "SingleChildScrollView(",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with SingleChildScrollView",
+            category = "Scrolling",
+        ),
+        WidgetWrapper(
+            name = "SafeArea",
+            template = listOf(
+                "SafeArea(",
+                "  child: \${widget},",
+                ")",
+            ),
+            description = "Wraps with SafeArea",
+            category = "Layout",
+        ),
+    )
+}

@@ -1,34 +1,25 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
     <id>com.palmerodev.flutter_widget_wrapper</id>
 
-    <!-- Public plugin name should be written in Title Case.
-     Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Flutter_widget_wrapper</name>
+    <name>Flutter Widget Wrapper</name>
 
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor url="https://www.yourcompany.com">YourCompany</vendor>
 
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
-        ]]></description>
+        Wrap Flutter widgets from the Alt+Enter context menu with SafeArea, Expanded, Opacity,
+        AnimatedSize and other layout/interaction wrappers. Context-aware: Expanded and Flexible
+        only appear inside Row, Column or Flex. Supports custom user-defined wrappers via JSON.
+    ]]></description>
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
-    <depends>com.intellij.modules.lsp</depends>
+    <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="flutter-widget-wrapper-dart.xml">Dart</depends>
 
-    <resource-bundle>messages.MyMessageBundle</resource-bundle>
+    <resource-bundle>messages.FlutterWidgetWrapperBundle</resource-bundle>
 
-    <!-- Extensions defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="MyToolWindow"
-                    factoryClass="com.palmerodev.MyToolWindowFactory"
-                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>
+        <applicationService serviceImplementation="com.palmerodev.fww.settings.FlutterWrapperSettings"/>
+        <postStartupActivity implementation="com.palmerodev.fww.intention.WrapIntentionRegistrar"/>
     </extensions>
 
 </idea-plugin>
