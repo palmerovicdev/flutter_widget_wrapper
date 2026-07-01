@@ -1,5 +1,6 @@
 package com.palmerodev.fww.wrappers
 
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -7,6 +8,8 @@ import com.google.gson.JsonParser
 import com.palmerodev.fww.model.WidgetWrapper
 
 object WrapperJsonCodec {
+
+    private val PRETTY_GSON = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
     fun parseList(json: String): List<WidgetWrapper> {
         if (json.isBlank()) return emptyList()
@@ -18,6 +21,36 @@ object WrapperJsonCodec {
         return array.mapNotNull { element ->
             if (element.isJsonObject) parseWrapper(element.asJsonObject) else null
         }
+    }
+
+    fun encodeList(wrappers: List<WidgetWrapper>): String {
+        val array = JsonArray()
+        for (w in wrappers) array.add(encodeWrapper(w))
+        return PRETTY_GSON.toJson(array)
+    }
+
+    fun encodeSingle(wrapper: WidgetWrapper): String = PRETTY_GSON.toJson(encodeWrapper(wrapper))
+
+    private fun encodeWrapper(w: WidgetWrapper): JsonObject {
+        val obj = JsonObject()
+        obj.addProperty("name", w.name)
+        w.description?.let { obj.addProperty("description", it) }
+        if (w.category.isNotBlank() && w.category != "Custom") obj.addProperty("category", w.category)
+        if (!w.enabled) obj.addProperty("enabled", false)
+        val templateArr = JsonArray().also { arr -> w.template.forEach { arr.add(it) } }
+        obj.add("template", templateArr)
+        if (w.allowedParents != listOf("any")) {
+            obj.add("allowedParents", JsonArray().also { arr -> w.allowedParents.forEach { arr.add(it) } })
+        }
+        if (w.disallowedParents.isNotEmpty()) {
+            obj.add(
+                "disallowedParents",
+                JsonArray().also { arr -> w.disallowedParents.forEach { arr.add(it) } },
+            )
+        }
+        if (w.requiresDirectParent) obj.addProperty("requiresDirectParent", true)
+        w.warning?.let { obj.addProperty("warning", it) }
+        return obj
     }
 
     private fun parseWrapper(obj: JsonObject): WidgetWrapper? {

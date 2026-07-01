@@ -1,5 +1,6 @@
 package com.palmerodev.fww
 
+import com.palmerodev.fww.model.WidgetWrapper
 import com.palmerodev.fww.wrappers.WrapperJsonCodec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -52,5 +53,23 @@ class WrapperJsonCodecTest {
     @Test
     fun `returns empty list for malformed json`() {
         assertTrue(WrapperJsonCodec.parseList("{not valid").isEmpty())
+    }
+
+    @Test
+    fun `encodeList roundtrips through parseList`() {
+        val original = listOf(
+            WidgetWrapper(
+                name = "MyExpanded",
+                template = listOf("Expanded(", "  child: \${widget},", ")"),
+                description = "custom",
+                category = "Layout",
+                allowedParents = listOf("Row", "Column", "Flex"),
+                requiresDirectParent = true,
+                warning = "beware",
+            ),
+        )
+        val json = WrapperJsonCodec.encodeList(original)
+        val roundtripped = WrapperJsonCodec.parseList(json)
+        assertEquals(original, roundtripped)
     }
 }

@@ -17,11 +17,16 @@ class WrapIntentionRegistrar : ProjectActivity {
     companion object {
 
         private val registeredNames = mutableSetOf<String>()
+        private var registeredCreateWrapper = false
         private val lock = Any()
 
         fun syncRegistrations() {
             synchronized(lock) {
                 val manager = IntentionManager.getInstance()
+                if (!registeredCreateWrapper) {
+                    manager.addAction(CreateWrapperFromWidgetIntention())
+                    registeredCreateWrapper = true
+                }
                 val settings = FlutterWrapperSettings.getInstanceOrNull()
                 val customNames = settings
                     ?.let { WrapperJsonCodec.parseList(it.customWrappersJson) }
