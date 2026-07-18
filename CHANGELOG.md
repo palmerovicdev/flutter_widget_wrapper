@@ -5,6 +5,14 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-07-18
+
+### Changed
+
+- Widget detection now prefers the Dart plugin PSI (`DartCallExpression` / related nodes)
+  over the hand-rolled text scanner, so nesting, strings, and named constructors are
+  resolved from the real parse tree. The text scanner remains as a fallback.
+
 ## [1.2.0] - 2026-07-18
 
 ### Added

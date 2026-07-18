@@ -1,9 +1,21 @@
 package com.palmerodev.fww.detection
 
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
+import com.jetbrains.lang.dart.psi.DartCallExpression
+import com.jetbrains.lang.dart.psi.DartConstObjectExpression
+import com.jetbrains.lang.dart.psi.DartElement
+import com.jetbrains.lang.dart.psi.DartFile
+import com.jetbrains.lang.dart.psi.DartListLiteralExpression
+import com.jetbrains.lang.dart.psi.DartNamedArgument
+import com.jetbrains.lang.dart.psi.DartNewExpression
+
 /**
  * Detects an editor selection that covers two or more sibling widgets living directly in a
  * `children: [...]` list of a flex parent (Row / Column / Flex). Such a selection can be wrapped as
  * a group — e.g. into a single `Stack`.
+ *
+ * Prefers Dart PSI when available; falls back to a text scan otherwise.
  */
 object MultiWidgetSelectionDetector {
 
@@ -18,6 +30,13 @@ object MultiWidgetSelectionDetector {
         /** The enclosing flex widget the selection belongs to. */
         val parentWidgetName: String,
     )
+
+    fun analyze(file: PsiFile, selectionStart: Int, selectionEnd: Int): Result? {
+        if (file is DartFile) {
+            analyzePsi(file, selectionStart, selectionEnd)?.let { return it }
+        }
+        return analyze(file.text, selectionStart, selectionEnd)
+    }
 
     fun analyze(text: String, selectionStart: Int, selectionEnd: Int): Result? {
         var start = selectionStart
@@ -40,6 +59,67 @@ object MultiWidgetSelectionDetector {
         if (!elements.all(::looksLikeWidgetExpression)) return null
 
         return Result(elements, start, end, parent)
+    }
+
+    private fun analyzePsi(file: DartFile, selectionStart: Int, selectionEnd: Int): Result? {
+        val text = file.text
+        var start = selectionStart
+        var end = selectionEnd
+        while (start < end && text[start].isWhitespace()) start++
+        while (end > start && text[end - 1].isWhitespace()) end--
+        if (end > start && text[end - 1] == ',') {
+            end--
+            while (end > start && text[end - 1].isWhitespace()) end--
+        }
+        if (end - start < 2) return null
+
+        val leaf = file.findElementAt(start) ?: return null
+        val list = PsiTreeUtil.getParentOfType(leaf, DartListLiteralExpression::class.java)
+            ?: return null
+
+        val parentName = flexParentName(list) ?: return null
+
+        val selected = list.elementList.filter { el ->
+            val r = el.textRange
+            r.startOffset >= start && r.endOffset <= end
+        }
+        if (selected.size < 2) return null
+        if (!selected.all(::looksLikeWidgetListElement)) return null
+
+        val selStart = selected.first().textRange.startOffset
+        val selEnd = selected.last().textRange.endOffset
+        return Result(
+            elements = selected.map { it.text.trim() },
+            start = selStart,
+            end = selEnd,
+            parentWidgetName = parentName,
+        )
+    }
+
+    private fun flexParentName(list: DartListLiteralExpression): String? {
+        val named = PsiTreeUtil.getParentOfType(list, DartNamedArgument::class.java) ?: return null
+        val paramName = named.parameterReferenceExpression?.text?.trim() ?: return null
+        if (paramName != "children") return null
+        val owner = PsiTreeUtil.getParentOfType(
+            named,
+            DartCallExpression::class.java,
+            DartNewExpression::class.java,
+            DartConstObjectExpression::class.java,
+        ) ?: return null
+        val name = PsiFlutterWidgetDetector.widgetClassName(owner) ?: return null
+        return name.takeIf { it in FLEX_PARENTS }
+    }
+
+    private fun looksLikeWidgetListElement(element: DartElement): Boolean {
+        if (PsiFlutterWidgetDetector.isWidgetExpression(element)) return true
+        val widget = PsiTreeUtil.findChildOfAnyType(
+            element,
+            true,
+            DartCallExpression::class.java,
+            DartNewExpression::class.java,
+            DartConstObjectExpression::class.java,
+        )
+        return widget != null && PsiFlutterWidgetDetector.isWidgetExpression(widget)
     }
 
     /**
@@ -67,10 +147,22 @@ object MultiWidgetSelectionDetector {
                     if (j > offset) return null // selection begins inside a string
                     i = j
                 }
-                '(' -> { stack.addLast(Br('(', DartLexer.lookBackForCallee(text, i).first)); i++ }
-                '[' -> { stack.addLast(Br('[', null)); i++ }
-                '{' -> { stack.addLast(Br('{', null)); i++ }
-                ')', ']', '}' -> { stack.removeLastOrNull(); i++ }
+                '(' -> {
+                    stack.addLast(Br('(', DartLexer.lookBackForCallee(text, i).first))
+                    i++
+                }
+                '[' -> {
+                    stack.addLast(Br('[', null))
+                    i++
+                }
+                '{' -> {
+                    stack.addLast(Br('{', null))
+                    i++
+                }
+                ')', ']', '}' -> {
+                    stack.removeLastOrNull()
+                    i++
+                }
                 else -> i++
             }
         }

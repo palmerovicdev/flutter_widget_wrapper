@@ -1,5 +1,0 @@
-<idea-plugin>
-    <!-- Loaded only when the Dart plugin is present. Reserved for richer PSI-based detection. -->
-    <extensions defaultExtensionNs="com.intellij">
-    </extensions>
-</idea-plugin>

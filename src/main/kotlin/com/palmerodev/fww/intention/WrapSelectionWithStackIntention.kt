@@ -30,7 +30,7 @@ class WrapSelectionWithStackIntention : BaseIntentionAction() {
         val selection = editor.selectionModel
         if (!selection.hasSelection()) return false
         val result = MultiWidgetSelectionDetector.analyze(
-            editor.document.text,
+            file,
             selection.selectionStart,
             selection.selectionEnd,
         ) ?: return false
@@ -43,7 +43,7 @@ class WrapSelectionWithStackIntention : BaseIntentionAction() {
         val document = editor.document
         val selection = editor.selectionModel
         val result = MultiWidgetSelectionDetector.analyze(
-            document.text,
+            file,
             selection.selectionStart,
             selection.selectionEnd,
         ) ?: return

@@ -15,8 +15,8 @@ dependencies {
         intellijIdea("2026.1.3")
         testFramework(TestFrameworkType.Platform)
 
-        // Add plugin dependencies for compilation here, for example:
-        // bundledPlugin("com.intellij.java")
+        // Dart is not bundled with IntelliJ IDEA; pull it from Marketplace for PSI APIs.
+        plugin("Dart", "507.0.0")
     }
 }
 

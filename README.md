@@ -109,6 +109,7 @@ To launch a sandbox IDE with the plugin installed:
 ## Compatibility
 
 - IntelliJ Platform `2026.1` or later
+- Dart plugin (required; provides the PSI used for widget detection)
 - IDEs that support the Dart plugin
 - Flutter projects using Dart source files
 

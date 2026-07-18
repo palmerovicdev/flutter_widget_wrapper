@@ -30,7 +30,7 @@ class CreateWrapperFromWidgetIntention : BaseIntentionAction() {
         if (editor == null || file == null) return false
         if (!file.name.endsWith(".dart")) return false
         val offset = editor.caretModel.offset
-        val detected = FlutterWidgetDetector.detect(file.name, editor.document.text, offset) ?: return false
+        val detected = FlutterWidgetDetector.detect(file, offset) ?: return false
         val field = WrappableFieldDetector.find(detected.text) ?: return false
         cachedText = FlutterWidgetWrapperBundle.message("intention.text.createWrapper", detected.name)
         return field.fieldName in WrappableFieldDetector.WRAPPABLE_FIELDS
@@ -39,7 +39,7 @@ class CreateWrapperFromWidgetIntention : BaseIntentionAction() {
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         if (editor == null || file == null) return
         val offset = editor.caretModel.offset
-        val detected = FlutterWidgetDetector.detect(file.name, editor.document.text, offset) ?: return
+        val detected = FlutterWidgetDetector.detect(file, offset) ?: return
         val field = WrappableFieldDetector.find(detected.text) ?: return
 
         val replacement = if (field.isList) $$"[${widget}]" else $$"${widget}"

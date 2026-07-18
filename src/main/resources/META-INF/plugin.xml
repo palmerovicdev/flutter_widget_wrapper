@@ -23,7 +23,7 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
-    <depends optional="true" config-file="flutter-widget-wrapper-dart.xml">Dart</depends>
+    <depends>Dart</depends>
 
     <resource-bundle>messages.FlutterWidgetWrapperBundle</resource-bundle>
 

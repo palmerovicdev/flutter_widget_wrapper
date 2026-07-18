@@ -26,7 +26,7 @@ class WrapWithWidgetIntention(private val wrapperName: String) : BaseIntentionAc
         if (!file.name.endsWith(".dart")) return false
         val wrapper = WrapperRepository.byName(wrapperName) ?: return false
         val offset = editor.caretModel.offset
-        val detected = FlutterWidgetDetector.detect(file.name, editor.document.text, offset) ?: return false
+        val detected = FlutterWidgetDetector.detect(file, offset) ?: return false
         val context = FlutterContextAnalyzer.analyze(detected)
         return WrapperContextMatcher.matches(wrapper, context)
     }
@@ -35,9 +35,8 @@ class WrapWithWidgetIntention(private val wrapperName: String) : BaseIntentionAc
         if (editor == null || file == null) return
         val wrapper = WrapperRepository.byName(wrapperName) ?: return
         val document = editor.document
-        val text = document.text
         val offset = editor.caretModel.offset
-        val detected = FlutterWidgetDetector.detect(file.name, text, offset) ?: return
+        val detected = FlutterWidgetDetector.detect(file, offset) ?: return
 
         val startOffset = detected.range.startOffset
         val endOffset = detected.range.endOffset

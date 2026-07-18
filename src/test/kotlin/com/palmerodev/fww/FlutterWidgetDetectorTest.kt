@@ -85,4 +85,13 @@ class FlutterWidgetDetectorTest {
         assertEquals("Text", detected.name)
         assertNull(detected.parentWidgetName)
     }
+
+    @Test
+    fun `named constructor resolves to the class name`() {
+        val text = "Center(child: ListView.builder())"
+        val cursor = text.indexOf("ListView")
+        val detected = FlutterWidgetDetector.detect("main.dart", text, cursor)!!
+        assertEquals("ListView", detected.name)
+        assertEquals("Center", detected.parentWidgetName)
+    }
 }

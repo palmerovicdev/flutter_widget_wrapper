@@ -1,9 +1,10 @@
 package com.palmerodev.fww.detection
 
 /**
- * Minimal, PSI-free lexing primitives shared by the widget detectors. Handles the Dart string and
- * comment forms that would otherwise desync a naive paren/bracket scan: single/double/triple
- * quotes, `\` escapes, raw strings (`r'...'`), and `${...}` interpolation whose body is real code.
+ * Minimal lexing primitives shared by the text-based widget detectors (fallback when Dart PSI is
+ * unavailable). Handles the Dart string and comment forms that would otherwise desync a naive
+ * paren/bracket scan: single/double/triple quotes, `\` escapes, raw strings (`r'...'`), and
+ * `${...}` interpolation whose body is real code.
  */
 internal object DartLexer {
 
@@ -60,9 +61,10 @@ internal object DartLexer {
     }
 
     /**
-     * From an opening `(` at [parenIdx], returns the callee identifier and its start offset, or
-     * `null to null` when the paren is not a call (e.g. a grouping paren). Skips a trailing generic
-     * argument list such as `Foo<Bar>(`.
+     * From an opening `(` at [parenIdx], returns the callee class/identifier and its start offset,
+     * or `null to null` when the paren is not a call. Skips a trailing generic argument list such as
+     * `Foo<Bar>(`. For named constructors like `ListView.builder(`, returns the class name
+     * (`ListView`) rather than the trailing identifier.
      */
     fun lookBackForCallee(text: String, parenIdx: Int): Pair<String?, Int?> {
         var i = parenIdx - 1
@@ -86,7 +88,29 @@ internal object DartLexer {
         while (i >= 0 && (text[i].isLetterOrDigit() || text[i] == '_')) i--
         val start = i + 1
         if (start == end) return null to null
-        return text.substring(start, end) to start
+        var name = text.substring(start, end)
+        var nameStart = start
+
+        // Named constructor / static method: ClassName.identifier(
+        if (name.isNotEmpty() && name[0].isLowerCase()) {
+            var j = start - 1
+            while (j >= 0 && text[j].isWhitespace()) j--
+            if (j >= 0 && text[j] == '.') {
+                j--
+                while (j >= 0 && text[j].isWhitespace()) j--
+                val classEnd = j + 1
+                while (j >= 0 && (text[j].isLetterOrDigit() || text[j] == '_')) j--
+                val classStart = j + 1
+                if (classStart < classEnd) {
+                    val className = text.substring(classStart, classEnd)
+                    if (className.isNotEmpty() && className[0].isUpperCase()) {
+                        name = className
+                        nameStart = classStart
+                    }
+                }
+            }
+        }
+        return name to nameStart
     }
 
     /**
