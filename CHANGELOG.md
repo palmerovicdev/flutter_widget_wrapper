@@ -5,6 +5,29 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-18
+
+### Added
+
+- Wrap multiple widgets in a `Stack`: select two or more sibling widgets inside a
+  `Row`, `Column`, or `Flex` and use `Alt+Enter` → "Wrap N widgets with Stack" to
+  wrap them all at once.
+
+### Changed
+
+- Redesigned the settings screen into a master–detail layout: a category tree on the
+  left enables or disables built-in and custom wrappers with checkboxes, while the
+  right side shows the selected wrapper's template and a live preview. Add, edit,
+  duplicate, import, and export are available from the toolbar.
+
+### Fixed
+
+- Widget detection now correctly handles raw strings (`r'...'`), triple-quoted strings,
+  and `${widget}`-style interpolation, so a string earlier in the file no longer
+  desyncs the detection of widgets below it.
+- Non-widget constructors such as `Duration`, `Color`, and `TextStyle` are no longer
+  offered as wrappable widgets in the `Alt+Enter` menu.
+
 ## [1.1.1] - 2026-07-01
 
 ### Fixed

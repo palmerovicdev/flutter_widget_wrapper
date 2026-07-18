@@ -7,14 +7,17 @@ import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.ui.CheckboxTree
+import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.JBColor
 import com.intellij.ui.JBSplitter
-import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.tree.TreeUtil
 import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.intention.WrapIntentionRegistrar
 import com.palmerodev.fww.model.WidgetWrapper
@@ -25,252 +28,322 @@ import com.palmerodev.fww.wrappers.WrapperValidator
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Font
-import java.awt.GridLayout
-import javax.swing.BorderFactory
-import javax.swing.Box
-import javax.swing.BoxLayout
-import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
-import javax.swing.ListSelectionModel
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
+import javax.swing.JTree
+import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreeSelectionModel
 
 class WrapperSettingsConfigurable : Configurable {
 
     private val settings get() = FlutterWrapperSettings.getInstance()
 
-    private val builtInCheckboxes = LinkedHashMap<String, JBCheckBox>()
+    /** In-memory editing state, mirrored back to [settings] on [apply]. */
+    private val disabledBuiltIns = mutableSetOf<String>()
+    private var customWrappers = mutableListOf<WidgetWrapper>()
 
-    private val listModel = DefaultListModel<String>()
-    private val wrapperList = JBList(listModel).apply {
-        selectionMode = ListSelectionModel.SINGLE_SELECTION
-    }
-    private val previewArea = JBTextArea().apply {
-        isEditable = false
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-    }
-    private val jsonArea = JBTextArea().apply {
-        rows = 12
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-        lineWrap = false
-    }
-    private val validationLabel = JBLabel()
-    private var rootPanel: JPanel? = null
+    private class CategoryTag(val name: String)
+    private class Entry(var wrapper: WidgetWrapper, val builtIn: Boolean)
 
-    private var currentWrappers: List<WidgetWrapper> = emptyList()
-    private var suppressJsonListener = false
-    private var suppressListSelection = false
+    private val rootNode = CheckedTreeNode("root")
+    private lateinit var tree: CheckboxTree
+    private val treeModel get() = tree.model as DefaultTreeModel
+
+    private val detailTitle = JBLabel()
+    private val detailMeta = JBLabel()
+    private val templateArea = readOnlyCode()
+    private val previewArea = readOnlyCode()
+    private var rootPanel: JComponent? = null
 
     override fun getDisplayName(): String = FlutterWidgetWrapperBundle.message("settings.title")
 
     override fun createComponent(): JComponent {
-        val root = JPanel()
-        root.layout = BoxLayout(root, BoxLayout.Y_AXIS)
-        root.border = JBUI.Borders.empty(10)
+        tree = createTree()
+        val decorator = ToolbarDecorator.createDecorator(tree)
+            .setAddAction { onAdd() }
+            .setEditAction { onEdit() }
+            .setRemoveAction { onRemove() }
+            .setEditActionUpdater { isCustomSelected() }
+            .setRemoveActionUpdater { isCustomSelected() }
+            .setAddActionName(FlutterWidgetWrapperBundle.message("settings.button.add"))
+            .disableUpDownActions()
 
-        root.add(buildBuiltInsSection())
-        root.add(Box.createVerticalStrut(12))
-        root.add(buildCustomSection())
+        val leftPanel = JPanel(BorderLayout()).apply {
+            add(decorator.createPanel(), BorderLayout.CENTER)
+            add(buildSecondaryActions(), BorderLayout.SOUTH)
+        }
 
-        rootPanel = root
+        val splitter = JBSplitter(false, 0.42f).apply {
+            firstComponent = leftPanel
+            secondComponent = buildDetailPanel()
+            preferredSize = Dimension(780, 480)
+        }
+        rootPanel = splitter
         reset()
-        return root
-    }
-
-    private fun buildBuiltInsSection(): JComponent {
-        val panel = JPanel(BorderLayout())
-        panel.border = BorderFactory.createTitledBorder(
-            FlutterWidgetWrapperBundle.message("settings.builtins.header")
-        )
-
-        val help = JBLabel(FlutterWidgetWrapperBundle.message("settings.builtins.help"))
-        help.border = JBUI.Borders.emptyBottom(6)
-        panel.add(help, BorderLayout.NORTH)
-
-        val grid = JPanel(GridLayout(0, 2, 8, 4))
-        builtInCheckboxes.clear()
-        for (w in BuiltInWrappers.ALL) {
-            val cb = JBCheckBox(w.name)
-            builtInCheckboxes[w.name] = cb
-            grid.add(cb)
-        }
-        panel.add(grid, BorderLayout.CENTER)
-
-        val actions = JPanel()
-        actions.layout = BoxLayout(actions, BoxLayout.X_AXIS)
-        val resetBtn = JButton(FlutterWidgetWrapperBundle.message("settings.button.reset"))
-        resetBtn.addActionListener {
-            for ((_, cb) in builtInCheckboxes) cb.isSelected = true
-        }
-        actions.add(resetBtn)
-        actions.add(Box.createHorizontalGlue())
-        panel.add(actions, BorderLayout.SOUTH)
-
-        return panel
-    }
-
-    private fun buildCustomSection(): JComponent {
-        val panel = JPanel(BorderLayout(0, 6))
-        panel.border = BorderFactory.createTitledBorder(
-            FlutterWidgetWrapperBundle.message("settings.custom.header")
-        )
-
-        panel.add(buildDocsPanel(), BorderLayout.NORTH)
-        panel.add(buildEditorSplit(), BorderLayout.CENTER)
-        panel.add(buildValidationPanel(), BorderLayout.SOUTH)
-
-        jsonArea.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent) = onJsonChanged()
-            override fun removeUpdate(e: DocumentEvent) = onJsonChanged()
-            override fun changedUpdate(e: DocumentEvent) = onJsonChanged()
-        })
-        wrapperList.addListSelectionListener {
-            if (it.valueIsAdjusting || suppressListSelection) return@addListSelectionListener
-            updatePreview()
-        }
-
-        return panel
-    }
-
-    private fun buildDocsPanel(): JComponent {
-        val panel = JPanel(BorderLayout())
-        panel.border = JBUI.Borders.emptyBottom(6)
-
-        val header = JBLabel("<html><b>${FlutterWidgetWrapperBundle.message("settings.custom.docs.header")}</b></html>")
-        panel.add(header, BorderLayout.NORTH)
-
-        val docs = JBLabel(DOCS_HTML)
-        docs.verticalAlignment = JBLabel.TOP
-        docs.border = JBUI.Borders.empty(4, 8)
-        panel.add(docs, BorderLayout.CENTER)
-
-        return panel
-    }
-
-    private fun buildEditorSplit(): JComponent {
-        val splitter = JBSplitter(false, 0.28f)
-        splitter.firstComponent = buildListPanel()
-        splitter.secondComponent = buildRightPanel()
-        splitter.preferredSize = Dimension(720, 420)
         return splitter
     }
 
-    private fun buildListPanel(): JComponent {
-        val panel = JPanel(BorderLayout(0, 4))
-        panel.border = JBUI.Borders.emptyRight(6)
+    private fun createTree(): CheckboxTree {
+        val renderer = object : CheckboxTree.CheckboxTreeCellRenderer() {
+            override fun customizeRenderer(
+                tree: JTree, value: Any, selected: Boolean, expanded: Boolean,
+                leaf: Boolean, row: Int, hasFocus: Boolean,
+            ) {
+                val node = value as? CheckedTreeNode ?: return
+                when (val obj = node.userObject) {
+                    is CategoryTag ->
+                        textRenderer.append(obj.name, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                    is Entry -> {
+                        textRenderer.append(obj.wrapper.name)
+                        if (obj.builtIn) {
+                            textRenderer.append("  ${FlutterWidgetWrapperBundle.message("settings.tree.builtin")}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                        }
+                        obj.wrapper.description?.takeIf { it.isNotBlank() }?.let {
+                            textRenderer.append("  — $it", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                        }
+                    }
+                }
+            }
+        }
+        return object : CheckboxTree(renderer, rootNode) {
+            override fun onNodeStateChanged(node: CheckedTreeNode?) {
+                recomputeFromTree()
+            }
+        }.apply {
+            isRootVisible = false
+            showsRootHandles = true
+            selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
+            addTreeSelectionListener { updateDetail() }
+        }
+    }
 
-        val label = JBLabel(FlutterWidgetWrapperBundle.message("settings.custom.list.label"))
-        panel.add(label, BorderLayout.NORTH)
+    private fun buildSecondaryActions(): JComponent {
+        val panel = JPanel().apply { border = JBUI.Borders.emptyTop(6) }
+        panel.layout = javax.swing.BoxLayout(panel, javax.swing.BoxLayout.X_AXIS)
 
-        val scroll = JBScrollPane(wrapperList)
-        scroll.preferredSize = Dimension(200, 300)
-        panel.add(scroll, BorderLayout.CENTER)
-
-        val actions = JPanel()
-        actions.layout = BoxLayout(actions, BoxLayout.X_AXIS)
-        val addBtn = JButton(FlutterWidgetWrapperBundle.message("settings.button.add"))
-        addBtn.addActionListener { onAddWrapper() }
-        val deleteBtn = JButton(FlutterWidgetWrapperBundle.message("settings.button.delete"))
-        deleteBtn.addActionListener { onDeleteWrapper() }
-        val previewBtn = JButton(FlutterWidgetWrapperBundle.message("settings.button.preview"))
-        previewBtn.addActionListener { onOpenPreviewDialog() }
-        actions.add(addBtn)
-        actions.add(Box.createHorizontalStrut(4))
-        actions.add(deleteBtn)
-        actions.add(Box.createHorizontalStrut(4))
-        actions.add(previewBtn)
-        panel.add(actions, BorderLayout.SOUTH)
-
+        fun button(key: String, action: () -> Unit) = JButton(FlutterWidgetWrapperBundle.message(key)).apply {
+            addActionListener { action() }
+        }
+        panel.add(button("settings.button.duplicate") { onDuplicate() })
+        panel.add(javax.swing.Box.createHorizontalGlue())
+        panel.add(button("settings.button.import") { onImport() })
+        panel.add(javax.swing.Box.createHorizontalStrut(4))
+        panel.add(button("settings.button.export") { onExport() })
         return panel
     }
 
-    private fun buildRightPanel(): JComponent {
-        val split = JBSplitter(true, 0.4f)
+    private fun buildDetailPanel(): JComponent {
+        val panel = JPanel(BorderLayout(0, 6)).apply { border = JBUI.Borders.emptyLeft(8) }
 
-        val previewPanel = JPanel(BorderLayout(0, 4))
-        previewPanel.add(
-            JBLabel(FlutterWidgetWrapperBundle.message("settings.custom.preview.label")),
-            BorderLayout.NORTH,
-        )
-        previewPanel.add(JBScrollPane(previewArea), BorderLayout.CENTER)
+        val header = JPanel(BorderLayout()).apply {
+            detailTitle.font = detailTitle.font.deriveFont(Font.BOLD, detailTitle.font.size + 2f)
+            add(detailTitle, BorderLayout.NORTH)
+            detailMeta.foreground = JBColor.GRAY
+            add(detailMeta, BorderLayout.SOUTH)
+        }
+        panel.add(header, BorderLayout.NORTH)
 
-        val jsonPanel = JPanel(BorderLayout(0, 4))
-        jsonPanel.add(
-            JBLabel(FlutterWidgetWrapperBundle.message("settings.custom.json.label")),
-            BorderLayout.NORTH,
-        )
-        jsonPanel.add(JBScrollPane(jsonArea), BorderLayout.CENTER)
-
-        val jsonButtons = JPanel()
-        jsonButtons.layout = BoxLayout(jsonButtons, BoxLayout.X_AXIS)
-        val importBtn = JButton(FlutterWidgetWrapperBundle.message("settings.button.import"))
-        importBtn.addActionListener { onImport() }
-        val exportBtn = JButton(FlutterWidgetWrapperBundle.message("settings.button.export"))
-        exportBtn.addActionListener { onExport() }
-        jsonButtons.add(Box.createHorizontalGlue())
-        jsonButtons.add(importBtn)
-        jsonButtons.add(Box.createHorizontalStrut(4))
-        jsonButtons.add(exportBtn)
-        jsonPanel.add(jsonButtons, BorderLayout.SOUTH)
-
-        split.firstComponent = previewPanel
-        split.secondComponent = jsonPanel
-        return split
-    }
-
-    private fun buildValidationPanel(): JComponent {
-        val panel = JPanel(BorderLayout())
-        panel.border = JBUI.Borders.emptyTop(4)
-        panel.add(validationLabel, BorderLayout.CENTER)
+        val body = JBSplitter(true, 0.6f).apply {
+            firstComponent = labeledScroll("settings.detail.template", templateArea)
+            secondComponent = labeledScroll("settings.detail.preview", previewArea)
+        }
+        panel.add(body, BorderLayout.CENTER)
         return panel
     }
 
-    private fun onAddWrapper() {
-        val existing = currentNames()
-        val dialog = WrapperFormDialog(existing)
+    private fun labeledScroll(labelKey: String, area: JBTextArea): JComponent =
+        JPanel(BorderLayout(0, 4)).apply {
+            add(JBLabel(FlutterWidgetWrapperBundle.message(labelKey)), BorderLayout.NORTH)
+            add(JBScrollPane(area), BorderLayout.CENTER)
+        }
+
+    // ---- model <-> tree ----------------------------------------------------
+
+    private fun reloadModelFromSettings() {
+        disabledBuiltIns.clear()
+        disabledBuiltIns.addAll(settings.disabledBuiltInNames)
+        customWrappers = WrapperJsonCodec.parseList(settings.customWrappersJson).toMutableList()
+    }
+
+    private fun rebuildTree(select: String? = null) {
+        rootNode.removeAllChildren()
+        val grouped = LinkedHashMap<String, MutableList<Entry>>()
+        for (w in BuiltInWrappers.ALL) {
+            grouped.getOrPut(w.category) { mutableListOf() }
+                .add(Entry(w.copy(enabled = w.name !in disabledBuiltIns), builtIn = true))
+        }
+        for (w in customWrappers) {
+            grouped.getOrPut(w.category) { mutableListOf() }.add(Entry(w, builtIn = false))
+        }
+        for ((category, entries) in grouped) {
+            val categoryNode = CheckedTreeNode(CategoryTag(category))
+            for (entry in entries) {
+                val leaf = CheckedTreeNode(entry)
+                leaf.isChecked = entry.wrapper.enabled
+                categoryNode.add(leaf)
+            }
+            categoryNode.isChecked = entries.all { it.wrapper.enabled }
+            rootNode.add(categoryNode)
+        }
+        treeModel.reload()
+        TreeUtil.expandAll(tree)
+        if (select != null) selectByName(select) else updateDetail()
+    }
+
+    private fun recomputeFromTree() {
+        val newDisabled = mutableSetOf<String>()
+        val enabledByName = mutableMapOf<String, Boolean>()
+        for (categoryNode in rootNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
+            for (leaf in categoryNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
+                val entry = leaf.userObject as? Entry ?: continue
+                if (entry.builtIn) {
+                    if (!leaf.isChecked) newDisabled.add(entry.wrapper.name)
+                } else {
+                    enabledByName[entry.wrapper.name] = leaf.isChecked
+                }
+            }
+        }
+        disabledBuiltIns.clear()
+        disabledBuiltIns.addAll(newDisabled)
+        customWrappers = customWrappers
+            .map { it.copy(enabled = enabledByName[it.name] ?: it.enabled) }
+            .toMutableList()
+    }
+
+    private fun selectedEntry(): Entry? {
+        val node = tree.selectionPath?.lastPathComponent as? CheckedTreeNode ?: return null
+        return node.userObject as? Entry
+    }
+
+    private fun isCustomSelected(): Boolean = selectedEntry()?.builtIn == false
+
+    private fun selectByName(name: String) {
+        for (categoryNode in rootNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
+            for (leaf in categoryNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
+                val entry = leaf.userObject as? Entry
+                if (entry?.wrapper?.name == name) {
+                    TreeUtil.selectNode(tree, leaf)
+                    return
+                }
+            }
+        }
+        updateDetail()
+    }
+
+    private fun updateDetail() {
+        val entry = selectedEntry()
+        if (entry == null) {
+            detailTitle.text = FlutterWidgetWrapperBundle.message("settings.detail.none")
+            detailMeta.text = " "
+            templateArea.text = ""
+            previewArea.text = ""
+            return
+        }
+        val w = entry.wrapper
+        detailTitle.text = w.name
+        detailMeta.text = describe(entry)
+        templateArea.text = w.template.joinToString("\n")
+        val validation = WrapperValidator.validate(w)
+        previewArea.text = if (validation is WrapperValidator.Result.Invalid) {
+            FlutterWidgetWrapperBundle.message("settings.detail.invalid", validation.reason)
+        } else {
+            WrapperTemplateEngine.apply(w, "Text('Hello')", "")
+        }
+    }
+
+    private fun describe(entry: Entry): String {
+        val w = entry.wrapper
+        val kind = if (entry.builtIn) {
+            FlutterWidgetWrapperBundle.message("settings.tree.builtin")
+        } else {
+            FlutterWidgetWrapperBundle.message("settings.detail.custom")
+        }
+        val scope = when {
+            w.requiresDirectParent -> FlutterWidgetWrapperBundle.message("settings.detail.directParent", w.allowedParents.joinToString(", "))
+            w.allowedParents == listOf("any") -> FlutterWidgetWrapperBundle.message("settings.detail.anyParent")
+            else -> FlutterWidgetWrapperBundle.message("settings.detail.inside", w.allowedParents.joinToString(", "))
+        }
+        val state = if (w.enabled) "" else "  ·  ${FlutterWidgetWrapperBundle.message("settings.detail.disabled")}"
+        return "$kind  ·  ${w.category}  ·  $scope$state"
+    }
+
+    // ---- toolbar actions ---------------------------------------------------
+
+    private fun allNames(): Set<String> =
+        (BuiltInWrappers.ALL.map { it.name } + customWrappers.map { it.name }).toSet()
+
+    private fun onAdd() {
+        val dialog = WrapperFormDialog(allNames())
         if (!dialog.showAndGet()) return
         val wrapper = dialog.result ?: return
-        val updated = currentWrappers.toMutableList().apply { add(wrapper) }
-        writeJson(WrapperJsonCodec.encodeList(updated))
-        selectWrapperByName(wrapper.name)
+        customWrappers.add(wrapper)
+        rebuildTree(select = wrapper.name)
     }
 
-    private fun onDeleteWrapper() {
-        val idx = wrapperList.selectedIndex
-        if (idx < 0 || idx >= currentWrappers.size) return
-        val victim = currentWrappers[idx]
+    private fun onEdit() {
+        val entry = selectedEntry() ?: return
+        if (entry.builtIn) return
+        val others = allNames() - entry.wrapper.name
+        val dialog = WrapperFormDialog(others, initial = entry.wrapper)
+        if (!dialog.showAndGet()) return
+        val updated = dialog.result ?: return
+        val idx = customWrappers.indexOfFirst { it.name == entry.wrapper.name }
+        if (idx >= 0) customWrappers[idx] = updated.copy(enabled = entry.wrapper.enabled)
+        rebuildTree(select = updated.name)
+    }
+
+    private fun onRemove() {
+        val entry = selectedEntry() ?: return
+        if (entry.builtIn) return
         val parent = rootPanel ?: return
         val choice = Messages.showYesNoDialog(
             parent,
-            "Delete wrapper \"${victim.name}\"?",
+            FlutterWidgetWrapperBundle.message("settings.delete.confirm", entry.wrapper.name),
             FlutterWidgetWrapperBundle.message("settings.button.delete"),
             Messages.getQuestionIcon(),
         )
         if (choice != Messages.YES) return
-        val updated = currentWrappers.toMutableList().apply { removeAt(idx) }
-        writeJson(WrapperJsonCodec.encodeList(updated))
+        customWrappers.removeAll { it.name == entry.wrapper.name }
+        rebuildTree()
     }
 
-    private fun onOpenPreviewDialog() {
-        val builtIns = BuiltInWrappers.ALL.filter { it.name !in currentDisabled() }
-        val customs = WrapperJsonCodec.parseList(jsonArea.text).filter(WrapperValidator::isValid)
-        val all = LinkedHashMap<String, WidgetWrapper>().apply {
-            for (w in builtIns) put(w.name, w)
-            for (w in customs) put(w.name, w)
-        }.values.toList()
-        WrapperPreviewDialog(all).show()
+    private fun onDuplicate() {
+        val entry = selectedEntry() ?: return
+        val base = entry.wrapper
+        val copy = base.copy(
+            name = uniqueName(base.name),
+            category = if (entry.builtIn) "Custom" else base.category,
+            enabled = true,
+        )
+        customWrappers.add(copy)
+        rebuildTree(select = copy.name)
+    }
+
+    private fun uniqueName(base: String): String {
+        val taken = allNames()
+        if ("${base}Copy" !in taken) return "${base}Copy"
+        var i = 2
+        while ("${base}Copy$i" in taken) i++
+        return "${base}Copy$i"
     }
 
     private fun onImport() {
-        val descriptor = FileChooserDescriptor(true, false, false, false, false, false)
-            .withFileFilter { it.extension.equals("json", ignoreCase = true) }
         val parent = rootPanel ?: return
+        val descriptor = FileChooserDescriptor(true, false, false, false, false, false)
+            .withExtensionFilter("json")
         val file = FileChooser.chooseFile(descriptor, parent, null, null) ?: return
         val content = runCatching { String(file.contentsToByteArray(), Charsets.UTF_8) }.getOrNull()
             ?: return Messages.showErrorDialog(parent, "Could not read ${file.path}", "Import JSON")
-        writeJson(content)
+        val imported = WrapperJsonCodec.parseList(content).filter(WrapperValidator::isValid)
+        if (imported.isEmpty()) {
+            Messages.showErrorDialog(parent, FlutterWidgetWrapperBundle.message("settings.import.empty"), "Import JSON")
+            return
+        }
+        val existing = customWrappers.associateBy { it.name }.toMutableMap()
+        for (w in imported) existing[w.name] = w
+        customWrappers = existing.values.toMutableList()
+        rebuildTree()
     }
 
     private fun onExport() {
@@ -279,195 +352,34 @@ class WrapperSettingsConfigurable : Configurable {
         val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, parent)
         val baseDir = LocalFileSystem.getInstance().findFileByPath(System.getProperty("user.home"))
         val target = dialog.save(baseDir, "wrappers.json") ?: return
-        runCatching { target.file.writeText(jsonArea.text) }
-            .onFailure {
-                Messages.showErrorDialog(parent, "Could not write file: ${it.message}", "Export JSON")
-            }
+        runCatching { target.file.writeText(WrapperJsonCodec.encodeList(customWrappers)) }
+            .onFailure { Messages.showErrorDialog(parent, "Could not write file: ${it.message}", "Export JSON") }
     }
 
-    private fun onJsonChanged() {
-        if (suppressJsonListener) return
-        revalidateJson()
-        rebuildListFromJson()
-    }
+    // ---- Configurable contract ---------------------------------------------
 
-    private fun rebuildListFromJson() {
-        val prevSelection = wrapperList.selectedValue
-        currentWrappers = WrapperJsonCodec.parseList(jsonArea.text)
-        suppressListSelection = true
-        listModel.clear()
-        for (w in currentWrappers) listModel.addElement(w.name)
-        val newIdx = currentWrappers.indexOfFirst { it.name == prevSelection }
-        if (newIdx >= 0) wrapperList.selectedIndex = newIdx
-        else if (currentWrappers.isNotEmpty()) wrapperList.selectedIndex = 0
-        suppressListSelection = false
-        updatePreview()
-    }
-
-    private fun updatePreview() {
-        val idx = wrapperList.selectedIndex
-        if (idx < 0 || idx >= currentWrappers.size) {
-            previewArea.text = FlutterWidgetWrapperBundle.message("settings.custom.list.empty")
-            return
-        }
-        val w = currentWrappers[idx]
-        val validation = WrapperValidator.validate(w)
-        if (validation is WrapperValidator.Result.Invalid) {
-            previewArea.text = "Invalid: ${validation.reason}"
-            return
-        }
-        previewArea.text = WrapperTemplateEngine.apply(w, "Text('Hello')", "")
-    }
-
-    private fun writeJson(json: String) {
-        suppressJsonListener = true
-        try {
-            jsonArea.text = json
-        } finally {
-            suppressJsonListener = false
-        }
-        revalidateJson()
-        rebuildListFromJson()
-    }
-
-    private fun selectWrapperByName(name: String) {
-        val idx = currentWrappers.indexOfFirst { it.name == name }
-        if (idx >= 0) wrapperList.selectedIndex = idx
-    }
-
-    private fun revalidateJson() {
-        val text = jsonArea.text
-        if (text.isBlank() || text.trim() == "[]") {
-            validationLabel.text = FlutterWidgetWrapperBundle.message("settings.custom.empty")
-            validationLabel.foreground = JBColor.GRAY
-            return
-        }
-        val wrappers = WrapperJsonCodec.parseList(text)
-        if (wrappers.isEmpty()) {
-            validationLabel.text = FlutterWidgetWrapperBundle.message(
-                "settings.custom.invalid",
-                "malformed JSON or empty array",
-            )
-            validationLabel.foreground = JBColor.RED
-            return
-        }
-        for (w in wrappers) {
-            val r = WrapperValidator.validate(w)
-            if (r is WrapperValidator.Result.Invalid) {
-                validationLabel.text = FlutterWidgetWrapperBundle.message(
-                    "settings.custom.invalid",
-                    "Invalid wrapper \"${w.name}\": ${r.reason}",
-                )
-                validationLabel.foreground = JBColor.RED
-                return
-            }
-        }
-        validationLabel.text = FlutterWidgetWrapperBundle.message("settings.custom.valid", wrappers.size)
-        validationLabel.foreground = JBColor.foreground()
-    }
-
-    private fun currentNames(): Set<String> = currentWrappers.map { it.name }.toSet()
-
-    override fun isModified(): Boolean {
-        val normalized = normalizeStoredJson(settings.customWrappersJson)
-        return jsonArea.text != normalized ||
-            currentDisabled() != settings.disabledBuiltInNames
-    }
+    override fun isModified(): Boolean =
+        disabledBuiltIns != settings.disabledBuiltInNames ||
+            customWrappers != WrapperJsonCodec.parseList(settings.customWrappersJson)
 
     override fun apply() {
-        val text = jsonArea.text.trim()
-        settings.customWrappersJson = if (text == "[]") "" else jsonArea.text
-        settings.disabledBuiltInNames = currentDisabled().toMutableSet()
+        settings.disabledBuiltInNames = disabledBuiltIns.toMutableSet()
+        settings.customWrappersJson =
+            if (customWrappers.isEmpty()) "" else WrapperJsonCodec.encodeList(customWrappers)
         WrapIntentionRegistrar.syncRegistrations()
     }
 
     override fun reset() {
-        val stored = normalizeStoredJson(settings.customWrappersJson)
-        writeJson(stored)
-        val disabled = settings.disabledBuiltInNames
-        for ((name, cb) in builtInCheckboxes) cb.isSelected = name !in disabled
+        reloadModelFromSettings()
+        rebuildTree()
     }
 
-    private fun normalizeStoredJson(stored: String): String =
-        if (stored.isBlank()) "[]" else stored
-
     override fun disposeUIResources() {
-        builtInCheckboxes.clear()
         rootPanel = null
     }
 
-    private fun currentDisabled(): MutableSet<String> = builtInCheckboxes
-        .filterValues { !it.isSelected }
-        .keys
-        .toMutableSet()
-
-}
-
-internal class WrapperPreviewDialog(private val wrappers: List<WidgetWrapper>) :
-    com.intellij.openapi.ui.DialogWrapper(true) {
-
-    private val list = JBList(wrappers.map { it.name })
-    private val preview = JBTextArea().apply {
+    private fun readOnlyCode() = JBTextArea().apply {
         isEditable = false
         font = Font(Font.MONOSPACED, Font.PLAIN, 12)
     }
-
-    init {
-        title = FlutterWidgetWrapperBundle.message("settings.preview.title")
-        init()
-        list.addListSelectionListener { updatePreview() }
-        if (wrappers.isNotEmpty()) list.selectedIndex = 0
-        updatePreview()
-    }
-
-    override fun createCenterPanel(): JComponent {
-        val root = JPanel(BorderLayout(8, 0))
-        root.preferredSize = Dimension(600, 380)
-        val leftScroll = JBScrollPane(list)
-        leftScroll.preferredSize = Dimension(180, 380)
-        root.add(leftScroll, BorderLayout.WEST)
-        root.add(JBScrollPane(preview), BorderLayout.CENTER)
-        return root
-    }
-
-    private fun updatePreview() {
-        val idx = list.selectedIndex
-        if (idx < 0 || idx >= wrappers.size) {
-            preview.text = FlutterWidgetWrapperBundle.message("settings.preview.no.selection")
-            return
-        }
-        val wrapper = wrappers[idx]
-        preview.text = WrapperTemplateEngine.apply(wrapper, "Text('Hello')", "")
-    }
 }
-
-private val DOCS_HTML = """
-    <html>
-    <body style='width: 640px'>
-    A wrapper is a JSON object inside a top-level array (<code>[ ... ]</code>).
-    Each entry describes a widget that can wrap another via the Alt+Enter menu.
-    <br><br>
-    <b>Required fields</b>
-    <ul>
-      <li><code>name</code> — unique name shown in the intention menu.</li>
-      <li><code>template</code> — string or array of lines. Must contain
-          <code>&#36;{widget}</code>, which is replaced by the wrapped widget.</li>
-    </ul>
-    <b>Optional fields</b>
-    <ul>
-      <li><code>description</code> — short human description.</li>
-      <li><code>category</code> — grouping label (default <code>Custom</code>).</li>
-      <li><code>enabled</code> — boolean, default <code>true</code>.</li>
-      <li><code>allowedParents</code> — list of parent widget names.
-          Use <code>["any"]</code> (default) or names like
-          <code>["Row","Column","Flex"]</code>.</li>
-      <li><code>disallowedParents</code> — parents that block the wrapper.</li>
-      <li><code>requiresDirectParent</code> — requires
-          <code>allowedParents</code> to be the immediate parent.</li>
-      <li><code>warning</code> — tooltip warning shown to the user.</li>
-    </ul>
-    Use the <b>Add wrapper…</b> button below to fill a form instead of
-    editing JSON by hand.
-    </body>
-    </html>
-""".trimIndent()

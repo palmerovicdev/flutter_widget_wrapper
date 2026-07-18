@@ -48,10 +48,10 @@ object FlutterWidgetDetector {
                     i = (i + 2).coerceAtMost(n)
                 }
                 '"', '\'' -> {
-                    i = skipString(text, i, c)
+                    i = DartLexer.skipString(text, i)
                 }
                 '(' -> {
-                    val (name, nameStart) = lookBackForCallee(text, i)
+                    val (name, nameStart) = DartLexer.lookBackForCallee(text, i)
                     stack.addLast(Frame(name, nameStart ?: i))
                     i++
                 }
@@ -78,50 +78,31 @@ object FlutterWidgetDetector {
         return widgets
     }
 
-    private fun skipString(text: String, start: Int, quote: Char): Int {
-        val n = text.length
-        val triple = start + 2 < n && text[start + 1] == quote && text[start + 2] == quote
-        var i = if (triple) start + 3 else start + 1
-        if (triple) {
-            while (i + 2 < n && !(text[i] == quote && text[i + 1] == quote && text[i + 2] == quote)) {
-                if (text[i] == '\\' && i + 1 < n) i++
-                i++
-            }
-            return (i + 3).coerceAtMost(n)
-        }
-        while (i < n && text[i] != quote && text[i] != '\n') {
-            if (text[i] == '\\' && i + 1 < n) i++
-            i++
-        }
-        return (i + 1).coerceAtMost(n)
-    }
-
-    private fun lookBackForCallee(text: String, parenIdx: Int): Pair<String?, Int?> {
-        var i = parenIdx - 1
-        while (i >= 0 && text[i].isWhitespace()) i--
-        if (i >= 0 && text[i] == '>') {
-            var depth = 1
-            i--
-            while (i >= 0 && depth > 0) {
-                when (text[i]) {
-                    '>' -> depth++
-                    '<' -> depth--
-                    ';', '{', '}' -> return null to null
-                }
-                if (depth > 0) i--
-            }
-            if (i < 0) return null to null
-            i--
-            while (i >= 0 && text[i].isWhitespace()) i--
-        }
-        val end = i + 1
-        while (i >= 0 && (text[i].isLetterOrDigit() || text[i] == '_')) i--
-        val start = i + 1
-        if (start == end) return null to null
-        val name = text.substring(start, end)
-        return name to start
-    }
-
+    /**
+     * A wrappable widget is an upper-camel identifier that is not one of the common painting,
+     * geometry, animation or data types that also read as `Uppercase(` constructor calls but are
+     * never Flutter widgets.
+     */
     private fun isWidgetName(name: String): Boolean =
-        name.isNotEmpty() && name[0].isUpperCase()
+        name.isNotEmpty() && name[0].isUpperCase() && name !in NON_WIDGET_TYPES
+
+    private val NON_WIDGET_TYPES = setOf(
+        "Duration", "Color", "Colors", "EdgeInsets", "EdgeInsetsDirectional",
+        "TextStyle", "StrutStyle", "BoxDecoration", "ShapeDecoration", "BoxConstraints",
+        "BorderRadius", "BorderRadiusDirectional", "Border", "BorderSide", "Radius",
+        "Offset", "Size", "Rect", "RRect", "Matrix4", "Alignment", "AlignmentDirectional",
+        "FractionalOffset", "Curve", "Curves", "Interval", "Cubic", "Tween", "ColorTween",
+        "Key", "ValueKey", "GlobalKey", "UniqueKey", "ObjectKey", "PageStorageKey",
+        "TextEditingController", "ScrollController", "PageController", "TabController",
+        "AnimationController", "FocusNode", "LinearGradient", "RadialGradient",
+        "SweepGradient", "Gradient", "BoxShadow", "Shadow", "Paint", "Path", "TextSpan",
+        "InlineSpan", "WidgetSpan", "Locale", "Uri", "DateTime", "RegExp", "Random",
+        "BigInt", "Rectangle", "InputDecoration", "IconThemeData", "ThemeData",
+        "MaterialStateProperty", "WidgetStateProperty", "MediaQueryData",
+        "SystemUiOverlayStyle", "OutlineInputBorder", "UnderlineInputBorder",
+        "RoundedRectangleBorder", "StadiumBorder", "CircleBorder", "BeveledRectangleBorder",
+        "ContinuousRectangleBorder", "VisualDensity", "ButtonStyle", "MaterialColor",
+        "HSVColor", "HSLColor", "TextTheme", "IconData", "Icons", "AssetImage",
+        "NetworkImage", "MemoryImage", "FileImage", "ImageProvider",
+    )
 }

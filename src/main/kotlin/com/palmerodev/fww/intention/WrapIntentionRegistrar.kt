@@ -18,6 +18,7 @@ class WrapIntentionRegistrar : ProjectActivity {
 
         private val registeredNames = mutableSetOf<String>()
         private var registeredCreateWrapper = false
+        private var registeredSelectionStack = false
         private val lock = Any()
 
         fun syncRegistrations() {
@@ -26,6 +27,10 @@ class WrapIntentionRegistrar : ProjectActivity {
                 if (!registeredCreateWrapper) {
                     manager.addAction(CreateWrapperFromWidgetIntention())
                     registeredCreateWrapper = true
+                }
+                if (!registeredSelectionStack) {
+                    manager.addAction(WrapSelectionWithStackIntention())
+                    registeredSelectionStack = true
                 }
                 val settings = FlutterWrapperSettings.getInstanceOrNull()
                 val customNames = settings

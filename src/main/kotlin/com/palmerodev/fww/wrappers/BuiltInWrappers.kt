@@ -52,18 +52,6 @@ object BuiltInWrappers {
             category = "Layout",
         ),
         WidgetWrapper(
-            name = "Expanded",
-            template = listOf(
-                "Expanded(",
-                $$"  child: ${widget},",
-                ")",
-            ),
-            description = "Wraps with Expanded",
-            category = "Layout",
-            allowedParents = listOf("Row", "Column", "Flex"),
-            requiresDirectParent = true,
-        ),
-        WidgetWrapper(
             name = "Flexible",
             template = listOf(
                 "Flexible(",
