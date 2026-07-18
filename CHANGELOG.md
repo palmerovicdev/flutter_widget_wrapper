@@ -5,6 +5,18 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Context-help (?) control next to the Template field in Settings and in the
+  create/edit wrapper dialog, explaining `${widget}`, tab-stops, `${end}`, and
+  parent rules.
+
+### Changed
+
+- README documents template syntax, tab-stops, parent rules, and how the
+  detect → analyze → match → apply pipeline works; settings screenshot updated
+  to `assets/settings2.png`.
+
 ## [1.2.2] - 2026-07-18
 
 ### Added

@@ -10,11 +10,11 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.model.WidgetWrapper
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import java.awt.Insets
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -71,7 +71,14 @@ class WrapperFormDialog(
 
         val templateScroll = JBScrollPane(templateArea)
         templateScroll.preferredSize = Dimension(520, 200)
-        addRow(panel, row++, "settings.form.label.template", templateScroll, fillVertical = true)
+        addRow(
+            panel,
+            row++,
+            "settings.form.label.template",
+            templateScroll,
+            fillVertical = true,
+            withHelp = true,
+        )
 
         val hint = JBLabel(FlutterWidgetWrapperBundle.message("settings.form.hint.template"))
         val hintGbc = GridBagConstraints().apply {
@@ -99,6 +106,7 @@ class WrapperFormDialog(
         labelKey: String,
         component: JComponent,
         fillVertical: Boolean = false,
+        withHelp: Boolean = false,
     ) {
         val labelGbc = GridBagConstraints().apply {
             gridx = 0
@@ -106,7 +114,15 @@ class WrapperFormDialog(
             anchor = GridBagConstraints.NORTHWEST
             insets = JBUI.insets(4, 4, 4, 8)
         }
-        panel.add(JBLabel(FlutterWidgetWrapperBundle.message(labelKey)), labelGbc)
+        val label = if (withHelp) {
+            JPanel(BorderLayout(4, 0)).apply {
+                add(JBLabel(FlutterWidgetWrapperBundle.message(labelKey)), BorderLayout.WEST)
+                add(WrapperSyntaxHelp.createLabel(), BorderLayout.EAST)
+            }
+        } else {
+            JBLabel(FlutterWidgetWrapperBundle.message(labelKey))
+        }
+        panel.add(label, labelGbc)
 
         val fieldGbc = GridBagConstraints().apply {
             gridx = 1

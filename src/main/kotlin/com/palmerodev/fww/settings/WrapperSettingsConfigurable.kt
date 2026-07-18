@@ -146,16 +146,24 @@ class WrapperSettingsConfigurable : Configurable {
         panel.add(header, BorderLayout.NORTH)
 
         val body = JBSplitter(true, 0.6f).apply {
-            firstComponent = labeledScroll("settings.detail.template", templateArea)
+            firstComponent = labeledScroll("settings.detail.template", templateArea, withHelp = true)
             secondComponent = labeledScroll("settings.detail.preview", previewArea)
         }
         panel.add(body, BorderLayout.CENTER)
         return panel
     }
 
-    private fun labeledScroll(labelKey: String, area: JBTextArea): JComponent =
+    private fun labeledScroll(
+        labelKey: String,
+        area: JBTextArea,
+        withHelp: Boolean = false,
+    ): JComponent =
         JPanel(BorderLayout(0, 4)).apply {
-            add(JBLabel(FlutterWidgetWrapperBundle.message(labelKey)), BorderLayout.NORTH)
+            val labelRow = JPanel(BorderLayout(6, 0)).apply {
+                add(JBLabel(FlutterWidgetWrapperBundle.message(labelKey)), BorderLayout.WEST)
+                if (withHelp) add(WrapperSyntaxHelp.createLabel(), BorderLayout.EAST)
+            }
+            add(labelRow, BorderLayout.NORTH)
             add(JBScrollPane(area), BorderLayout.CENTER)
         }
 
