@@ -14,6 +14,9 @@ import com.palmerodev.fww.intention.WrapWithWidgetIntention
  */
 class IntentionAvailabilityIntegrationTest : BasePlatformTestCase() {
 
+    /** Wrap in a function body so the Dart PSI builds real call expressions. */
+    private fun dart(body: String): String = "void f() {\n$body\n}"
+
     fun `test wrap intentions register in the manager without duplicate collision`() {
         WrapIntentionRegistrar.syncRegistrations()
         // Touching getAvailableIntentions triggers checkForDuplicates(); it must not throw.
@@ -25,16 +28,16 @@ class IntentionAvailabilityIntegrationTest : BasePlatformTestCase() {
     }
 
     fun `test isAvailable is true for a top level widget under the caret`() {
-        myFixture.configureByText("main.dart", "Text('hi')")
-        myFixture.editor.caretModel.moveToOffset(2)
+        myFixture.configureByText("main.dart", dart("Text('hi');"))
+        myFixture.editor.caretModel.moveToOffset(myFixture.file.text.indexOf("Text") + 2)
         val available = WrapWithWidgetIntention("Align").isAvailable(project, myFixture.editor, myFixture.file)
         assertTrue("Wrap with Align should be available on a top-level Text", available)
     }
 
     fun `test wrap action surfaces in the Alt Enter list end to end`() {
         WrapIntentionRegistrar.syncRegistrations()
-        myFixture.configureByText("main.dart", "Text('hi')")
-        myFixture.editor.caretModel.moveToOffset(2)
+        myFixture.configureByText("main.dart", dart("Text('hi');"))
+        myFixture.editor.caretModel.moveToOffset(myFixture.file.text.indexOf("Text") + 2)
         val available = myFixture.availableIntentions.map { it.text }
         assertTrue(
             "'Wrap with Align' should appear in the intention list. Got: $available",
@@ -43,7 +46,7 @@ class IntentionAvailabilityIntegrationTest : BasePlatformTestCase() {
     }
 
     fun `test wrap selection with Stack replaces the selected siblings`() {
-        myFixture.configureByText("main.dart", "Column(children: [Text('A'), Text('B')])")
+        myFixture.configureByText("main.dart", dart("Column(children: [Text('A'), Text('B')]);"))
         val text = myFixture.editor.document.text
         val selStart = text.indexOf("Text('A')")
         val selEnd = text.indexOf("Text('B')") + "Text('B')".length

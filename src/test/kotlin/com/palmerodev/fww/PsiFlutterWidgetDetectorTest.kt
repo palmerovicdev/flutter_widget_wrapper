@@ -75,4 +75,30 @@ class PsiFlutterWidgetDetectorTest : BasePlatformTestCase() {
         assertEquals("Column", result!!.parentWidgetName)
         assertEquals(2, result.elements.size)
     }
+
+    fun `test Theme of is not a widget via PSI`() {
+        myFixture.configureByText("main.dart", dart("Theme.of(context);"))
+        val offset = myFixture.file.text.indexOf("Theme")
+        assertNull(FlutterWidgetDetector.detect(myFixture.file, offset))
+    }
+
+    fun `test List generate is not a widget via PSI`() {
+        myFixture.configureByText("main.dart", dart("List.generate(3, (i) => i);"))
+        val offset = myFixture.file.text.indexOf("List")
+        assertNull(FlutterWidgetDetector.detect(myFixture.file, offset))
+    }
+
+    fun `test Duration is not a widget via PSI without text fallback`() {
+        myFixture.configureByText("main.dart", dart("Duration(milliseconds: 300);"))
+        val offset = myFixture.file.text.indexOf("Duration")
+        assertNull(FlutterWidgetDetector.detect(myFixture.file, offset))
+    }
+
+    fun `test non-children Row list is rejected via PSI`() {
+        myFixture.configureByText("main.dart", dart("Row(foo: [Text('A'), Text('B')]);"))
+        val text = myFixture.file.text
+        val start = text.indexOf("Text('A')")
+        val end = text.indexOf("Text('B')") + "Text('B')".length
+        assertNull(MultiWidgetSelectionDetector.analyze(myFixture.file, start, end))
+    }
 }

@@ -103,7 +103,10 @@ internal object DartLexer {
                 val classStart = j + 1
                 if (classStart < classEnd) {
                     val className = text.substring(classStart, classEnd)
-                    if (className.isNotEmpty() && className[0].isUpperCase()) {
+                    if (className.isNotEmpty() &&
+                        className[0].isUpperCase() &&
+                        WidgetNameHeuristics.isPromotableNamedMember(name)
+                    ) {
                         name = className
                         nameStart = classStart
                     }

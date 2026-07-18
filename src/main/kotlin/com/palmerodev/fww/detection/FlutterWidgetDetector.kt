@@ -7,16 +7,17 @@ import com.palmerodev.fww.model.DetectedWidget
 object FlutterWidgetDetector {
 
     /**
-     * Prefers Dart PSI when [file] is a parsed [DartFile]; falls back to the text scanner otherwise.
+     * Uses Dart PSI when [file] is a [DartFile]. Does not fall back to the text scanner on a
+     * PSI miss — text detection is only for non-Dart PSI files and the explicit string overload.
      */
     fun detect(file: PsiFile, offset: Int): DetectedWidget? {
         if (file is DartFile) {
-            PsiFlutterWidgetDetector.detect(file, offset)?.let { return it }
+            return PsiFlutterWidgetDetector.detect(file, offset)
         }
         return TextFlutterWidgetDetector.detect(file.name, file.text, offset)
     }
 
-    /** Text-only detection (unit tests and callers without a PSI file). */
+    /** Text-only detection (unit tests and callers without a Dart PSI file). */
     fun detect(fileName: String, text: String, offset: Int): DetectedWidget? =
         TextFlutterWidgetDetector.detect(fileName, text, offset)
 }

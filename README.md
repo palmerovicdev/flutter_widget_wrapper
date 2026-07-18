@@ -4,19 +4,19 @@ Flutter Widget Wrapper is an IntelliJ Platform plugin that adds context-aware
 Flutter widget wrappers to the `Alt+Enter` intention menu. Wrap a widget without
 manually moving code, fixing indentation, or rebuilding its constructor.
 
-![Version](https://img.shields.io/badge/version-1.1.1-blue)
+![Version](https://img.shields.io/badge/version-1.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2026.1%2B-purple)
 
 ## Features
 
 - Wrap Flutter widgets directly from the `Alt+Enter` menu.
-- Includes `Align`, `AnimatedSize`, `Expanded`, `Flexible`,
-  `GestureDetector`, `InkWell`, `Opacity`, `SafeArea`,
-  `SingleChildScrollView`, and `Stack`.
+- Includes `Align`, `AnimatedSize`, `Flexible`, `GestureDetector`, `InkWell`,
+  `Opacity`, `SafeArea`, `SingleChildScrollView`, and `Stack`.
 - Shows context-sensitive wrappers only where they are valid. For example,
-  `Expanded` and `Flexible` are offered only for direct children of `Row`,
-  `Column`, or `Flex`.
+  `Flexible` is offered only for direct children of `Row`, `Column`, or `Flex`.
+- Wrap several sibling widgets in a `Row`/`Column`/`Flex` `children:` list with a
+  single `Stack` via `Alt+Enter`.
 - Preserves indentation and reformats the generated Dart code.
 - Lets you enable or disable built-in wrappers.
 - Supports custom wrappers with validation, preview, and JSON import/export.
@@ -38,9 +38,8 @@ IDE formatter on the resulting code.
 Open **Settings/Preferences | Tools | Flutter Widget Wrapper** to:
 
 - choose which built-in wrappers appear in the intention menu;
-- add, edit, preview, or delete custom wrappers;
-- edit the complete wrapper list as JSON;
-- import or export custom wrapper definitions.
+- add, edit, duplicate, preview, or delete custom wrappers;
+- import or export custom wrapper definitions as JSON.
 
 ![Flutter Widget Wrapper settings](assets/settings.png)
 

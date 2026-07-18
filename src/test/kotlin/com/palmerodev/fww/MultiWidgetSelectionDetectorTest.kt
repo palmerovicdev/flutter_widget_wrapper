@@ -76,4 +76,18 @@ class MultiWidgetSelectionDetectorTest {
         assertEquals(2, r!!.elements.size)
         assertEquals("SizedBox(width: 1, height: 2)", r.elements.first())
     }
+
+    @Test
+    fun `non-children named list under Row is rejected`() {
+        val text = "Row(foo: [Text('A'), Text('B')])"
+        val r = analyze(text, "Text('A')", "Text('B')")
+        assertNull(r)
+    }
+
+    @Test
+    fun `Duration siblings are rejected as non-widgets`() {
+        val text = "Column(children: [Duration(seconds: 1), Text('B')])"
+        val r = analyze(text, "Duration(seconds: 1)", "Text('B')")
+        assertNull(r)
+    }
 }

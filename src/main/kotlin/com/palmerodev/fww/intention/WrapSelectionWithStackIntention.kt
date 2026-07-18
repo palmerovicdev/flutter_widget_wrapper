@@ -25,15 +25,28 @@ class WrapSelectionWithStackIntention : BaseIntentionAction() {
     override fun startInWriteAction(): Boolean = true
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        if (editor == null || file == null) return false
-        if (!file.name.endsWith(".dart")) return false
+        if (editor == null || file == null) {
+            cachedCount = 0
+            return false
+        }
+        if (!file.name.endsWith(".dart")) {
+            cachedCount = 0
+            return false
+        }
         val selection = editor.selectionModel
-        if (!selection.hasSelection()) return false
+        if (!selection.hasSelection()) {
+            cachedCount = 0
+            return false
+        }
         val result = MultiWidgetSelectionDetector.analyze(
             file,
             selection.selectionStart,
             selection.selectionEnd,
-        ) ?: return false
+        )
+        if (result == null) {
+            cachedCount = 0
+            return false
+        }
         cachedCount = result.elements.size
         return true
     }

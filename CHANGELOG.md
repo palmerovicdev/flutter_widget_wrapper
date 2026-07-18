@@ -7,11 +7,24 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [1.2.1] - 2026-07-18
 
+### Breaking
+
+- The Dart plugin is now a hard dependency. The plugin no longer loads in IDEs without
+  Dart; the previous optional config-file hook has been removed.
+
 ### Changed
 
-- Widget detection now prefers the Dart plugin PSI (`DartCallExpression` / related nodes)
-  over the hand-rolled text scanner, so nesting, strings, and named constructors are
-  resolved from the real parse tree. The text scanner remains as a fallback.
+- Widget detection uses the Dart plugin PSI (`DartCallExpression` / related nodes) for
+  `.dart` files. The text scanner is kept only for unit tests and non-Dart PSI files;
+  it is no longer used as a silent recovery path when PSI returns no hit.
+
+### Fixed
+
+- Named/static calls such as `Theme.of(...)` and `List.generate(...)` are no longer
+  treated as wrappable widgets.
+- Unchecking a custom wrapper and then editing it no longer re-enables it on Apply.
+- Multi-widget selection (text path) requires a `children:` list and uses the same
+  widget-name heuristics as single-widget detection.
 
 ## [1.2.0] - 2026-07-18
 
@@ -35,6 +48,11 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   desyncs the detection of widgets below it.
 - Non-widget constructors such as `Duration`, `Color`, and `TextStyle` are no longer
   offered as wrappable widgets in the `Alt+Enter` menu.
+
+### Removed
+
+- The built-in `Expanded` wrapper (it was frequently suggested incorrectly; use
+  `Flexible` or a custom wrapper when needed).
 
 ## [1.1.1] - 2026-07-01
 

@@ -12,10 +12,11 @@
         Add context-aware Flutter widget wrappers to the Alt+Enter intention menu. Wrap widgets
         without manually moving code, fixing indentation, or rebuilding constructors.
 
-        Includes built-in wrappers such as Align, AnimatedSize, Expanded, Flexible,
+        Includes built-in wrappers such as Align, AnimatedSize, Flexible,
         GestureDetector, InkWell, Opacity, SafeArea, SingleChildScrollView, and Stack. Wrappers
-        are shown only where they are valid; for example, Expanded and Flexible are offered only
-        for direct children of Row, Column, or Flex.
+        are shown only where they are valid; for example, Flexible is offered only
+        for direct children of Row, Column, or Flex. You can also wrap several sibling
+        widgets in a Flex children list with a Stack.
 
         Enable or disable built-in wrappers, create custom wrappers with validation and preview,
         and import or export wrapper definitions as JSON. You can also turn an existing Flutter

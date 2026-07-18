@@ -197,6 +197,8 @@ class WrapperSettingsConfigurable : Configurable {
         for (categoryNode in rootNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
             for (leaf in categoryNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
                 val entry = leaf.userObject as? Entry ?: continue
+                // Keep Entry.wrapper in sync so Edit/Duplicate/detail see the checkbox state.
+                entry.wrapper = entry.wrapper.copy(enabled = leaf.isChecked)
                 if (entry.builtIn) {
                     if (!leaf.isChecked) newDisabled.add(entry.wrapper.name)
                 } else {
@@ -209,6 +211,7 @@ class WrapperSettingsConfigurable : Configurable {
         customWrappers = customWrappers
             .map { it.copy(enabled = enabledByName[it.name] ?: it.enabled) }
             .toMutableList()
+        updateDetail()
     }
 
     private fun selectedEntry(): Entry? {
@@ -289,7 +292,11 @@ class WrapperSettingsConfigurable : Configurable {
         if (!dialog.showAndGet()) return
         val updated = dialog.result ?: return
         val idx = customWrappers.indexOfFirst { it.name == entry.wrapper.name }
-        if (idx >= 0) customWrappers[idx] = updated.copy(enabled = entry.wrapper.enabled)
+        if (idx >= 0) {
+            // Prefer the list model (kept in sync by recomputeFromTree) over a stale Entry.
+            val enabled = customWrappers[idx].enabled
+            customWrappers[idx] = updated.copy(enabled = enabled)
+        }
         rebuildTree(select = updated.name)
     }
 

@@ -94,4 +94,25 @@ class FlutterWidgetDetectorTest {
         assertEquals("ListView", detected.name)
         assertEquals("Center", detected.parentWidgetName)
     }
+
+    @Test
+    fun `Theme of is not treated as a wrappable widget`() {
+        val text = "Theme.of(context)"
+        val detected = FlutterWidgetDetector.detect("main.dart", text, text.indexOf("Theme"))
+        assertNull(detected)
+    }
+
+    @Test
+    fun `List generate is not treated as a wrappable widget`() {
+        val text = "List.generate(3, (i) => i)"
+        val detected = FlutterWidgetDetector.detect("main.dart", text, text.indexOf("List"))
+        assertNull(detected)
+    }
+
+    @Test
+    fun `Image asset named factory is still a widget`() {
+        val text = "Center(child: Image.asset('a.png'))"
+        val detected = FlutterWidgetDetector.detect("main.dart", text, text.indexOf("Image"))!!
+        assertEquals("Image", detected.name)
+    }
 }

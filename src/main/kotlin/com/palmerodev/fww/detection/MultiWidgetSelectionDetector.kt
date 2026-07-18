@@ -15,7 +15,7 @@ import com.jetbrains.lang.dart.psi.DartNewExpression
  * `children: [...]` list of a flex parent (Row / Column / Flex). Such a selection can be wrapped as
  * a group — e.g. into a single `Stack`.
  *
- * Prefers Dart PSI when available; falls back to a text scan otherwise.
+ * Production `.dart` files use PSI only. The text [analyze] overload is for unit tests.
  */
 object MultiWidgetSelectionDetector {
 
@@ -33,22 +33,13 @@ object MultiWidgetSelectionDetector {
 
     fun analyze(file: PsiFile, selectionStart: Int, selectionEnd: Int): Result? {
         if (file is DartFile) {
-            analyzePsi(file, selectionStart, selectionEnd)?.let { return it }
+            return analyzePsi(file, selectionStart, selectionEnd)
         }
         return analyze(file.text, selectionStart, selectionEnd)
     }
 
     fun analyze(text: String, selectionStart: Int, selectionEnd: Int): Result? {
-        var start = selectionStart
-        var end = selectionEnd
-        while (start < end && text[start].isWhitespace()) start++
-        while (end > start && text[end - 1].isWhitespace()) end--
-        // A trailing comma inside the selection is fine; drop it so the split has no empty tail.
-        if (end > start && text[end - 1] == ',') {
-            end--
-            while (end > start && text[end - 1].isWhitespace()) end--
-        }
-        if (end - start < 2) return null
+        val (start, end) = trimSelection(text, selectionStart, selectionEnd) ?: return null
 
         val parent = enclosingFlexParent(text, start) ?: return null
 
@@ -63,15 +54,7 @@ object MultiWidgetSelectionDetector {
 
     private fun analyzePsi(file: DartFile, selectionStart: Int, selectionEnd: Int): Result? {
         val text = file.text
-        var start = selectionStart
-        var end = selectionEnd
-        while (start < end && text[start].isWhitespace()) start++
-        while (end > start && text[end - 1].isWhitespace()) end--
-        if (end > start && text[end - 1] == ',') {
-            end--
-            while (end > start && text[end - 1].isWhitespace()) end--
-        }
-        if (end - start < 2) return null
+        val (start, end) = trimSelection(text, selectionStart, selectionEnd) ?: return null
 
         val leaf = file.findElementAt(start) ?: return null
         val list = PsiTreeUtil.getParentOfType(leaf, DartListLiteralExpression::class.java)
@@ -94,6 +77,20 @@ object MultiWidgetSelectionDetector {
             end = selEnd,
             parentWidgetName = parentName,
         )
+    }
+
+    private fun trimSelection(text: String, selectionStart: Int, selectionEnd: Int): Pair<Int, Int>? {
+        var start = selectionStart
+        var end = selectionEnd
+        while (start < end && text[start].isWhitespace()) start++
+        while (end > start && text[end - 1].isWhitespace()) end--
+        // A trailing comma inside the selection is fine; drop it so the split has no empty tail.
+        if (end > start && text[end - 1] == ',') {
+            end--
+            while (end > start && text[end - 1].isWhitespace()) end--
+        }
+        if (end - start < 2) return null
+        return start to end
     }
 
     private fun flexParentName(list: DartListLiteralExpression): String? {
@@ -124,10 +121,10 @@ object MultiWidgetSelectionDetector {
 
     /**
      * Walks the bracket/paren nesting up to [offset]; returns the flex widget name when the caret
-     * sits directly inside a `[...]` list owned by a Row/Column/Flex call, else null.
+     * sits directly inside a `children: [...]` list owned by a Row/Column/Flex call, else null.
      */
     private fun enclosingFlexParent(text: String, offset: Int): String? {
-        data class Br(val ch: Char, val name: String?)
+        data class Br(val ch: Char, val name: String?, val at: Int)
         val stack = ArrayDeque<Br>()
         var i = 0
         while (i < offset) {
@@ -148,15 +145,15 @@ object MultiWidgetSelectionDetector {
                     i = j
                 }
                 '(' -> {
-                    stack.addLast(Br('(', DartLexer.lookBackForCallee(text, i).first))
+                    stack.addLast(Br('(', DartLexer.lookBackForCallee(text, i).first, i))
                     i++
                 }
                 '[' -> {
-                    stack.addLast(Br('[', null))
+                    stack.addLast(Br('[', null, i))
                     i++
                 }
                 '{' -> {
-                    stack.addLast(Br('{', null))
+                    stack.addLast(Br('{', null, i))
                     i++
                 }
                 ')', ']', '}' -> {
@@ -169,17 +166,32 @@ object MultiWidgetSelectionDetector {
         val entries = stack.toList()
         val listIdx = entries.indexOfLast { it.ch == '[' }
         if (listIdx <= 0) return null
+        val list = entries[listIdx]
+        if (!isDirectChildrenList(text, list.at)) return null
         val owner = entries[listIdx - 1]
         if (owner.ch != '(') return null
         val name = owner.name ?: return null
         return name.takeIf { it in FLEX_PARENTS }
     }
 
+    /** True when `[` at [bracketIdx] is the value of a `children:` named argument. */
+    private fun isDirectChildrenList(text: String, bracketIdx: Int): Boolean {
+        var i = bracketIdx - 1
+        while (i >= 0 && text[i].isWhitespace()) i--
+        if (i < 0 || text[i] != ':') return false
+        i--
+        while (i >= 0 && text[i].isWhitespace()) i--
+        val end = i + 1
+        while (i >= 0 && (text[i].isLetterOrDigit() || text[i] == '_')) i--
+        return text.substring(i + 1, end) == "children"
+    }
+
     private fun looksLikeWidgetExpression(element: String): Boolean {
         var e = element.trim()
-        // Allow a leading `const` and inline conditionals like `if (cond) Widget()`.
         e = e.removePrefix("const ").trim()
-        val first = e.firstOrNull() ?: return false
-        return first.isUpperCase() || first == '_' && e.length > 1 && e[1].isUpperCase()
+        val paren = e.indexOf('(')
+        if (paren <= 0) return false
+        val (name, _) = DartLexer.lookBackForCallee(e, paren)
+        return name != null && WidgetNameHeuristics.isWidgetName(name)
     }
 }
