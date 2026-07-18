@@ -22,6 +22,7 @@ import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.intention.WrapIntentionRegistrar
 import com.palmerodev.fww.model.WidgetWrapper
 import com.palmerodev.fww.wrappers.BuiltInWrappers
+import com.palmerodev.fww.wrappers.TabStops
 import com.palmerodev.fww.wrappers.WrapperJsonCodec
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
 import com.palmerodev.fww.wrappers.WrapperValidator
@@ -251,7 +252,7 @@ class WrapperSettingsConfigurable : Configurable {
         previewArea.text = if (validation is WrapperValidator.Result.Invalid) {
             FlutterWidgetWrapperBundle.message("settings.detail.invalid", validation.reason)
         } else {
-            WrapperTemplateEngine.apply(w, "Text('Hello')", "")
+            TabStops.stripToDefaults(WrapperTemplateEngine.apply(w, "Text('Hello')", ""))
         }
     }
 

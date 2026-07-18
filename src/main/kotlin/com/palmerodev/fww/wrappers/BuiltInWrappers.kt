@@ -9,8 +9,8 @@ object BuiltInWrappers {
             name = "AnimatedSize",
             template = listOf(
                 "AnimatedSize(",
-                "  duration: const Duration(milliseconds: 300),",
-                "  curve: Curves.easeInOut,",
+                $$"  duration: const Duration(milliseconds: ${ms:300}),",
+                $$"  curve: ${curve:Curves.easeInOut},",
                 $$"  child: ${widget},",
                 ")",
             ),
@@ -21,7 +21,7 @@ object BuiltInWrappers {
             name = "GestureDetector",
             template = listOf(
                 "GestureDetector(",
-                "  onTap: () {},",
+                $$"  onTap: () {${end}},",
                 $$"  child: ${widget},",
                 ")",
             ),
@@ -32,7 +32,7 @@ object BuiltInWrappers {
             name = "InkWell",
             template = listOf(
                 "InkWell(",
-                "  onTap: () {},",
+                $$"  onTap: () {${end}},",
                 $$"  child: ${widget},",
                 ")",
             ),
@@ -44,7 +44,7 @@ object BuiltInWrappers {
             name = "Align",
             template = listOf(
                 "Align(",
-                "  alignment: Alignment.center,",
+                $$"  alignment: ${alignment:Alignment.center},",
                 $$"  child: ${widget},",
                 ")",
             ),
@@ -76,10 +76,24 @@ object BuiltInWrappers {
             category = "Layout",
         ),
         WidgetWrapper(
+            name = "Positioned",
+            template = listOf(
+                "Positioned(",
+                $$"  top: ${top:0},",
+                $$"  left: ${left:0},",
+                $$"  child: ${widget},",
+                ")",
+            ),
+            description = "Wraps with Positioned",
+            category = "Layout",
+            allowedParents = listOf("Stack"),
+            requiresDirectParent = true,
+        ),
+        WidgetWrapper(
             name = "Opacity",
             template = listOf(
                 "Opacity(",
-                "  opacity: 0.5,",
+                $$"  opacity: ${opacity:0.5},",
                 $$"  child: ${widget},",
                 ")",
             ),

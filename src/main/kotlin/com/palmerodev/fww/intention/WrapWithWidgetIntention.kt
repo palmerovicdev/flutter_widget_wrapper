@@ -9,6 +9,8 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.palmerodev.fww.detection.FlutterContextAnalyzer
 import com.palmerodev.fww.detection.FlutterWidgetDetector
+import com.palmerodev.fww.wrappers.LiveTemplateWrapEngine
+import com.palmerodev.fww.wrappers.TabStops
 import com.palmerodev.fww.wrappers.WrapperContextMatcher
 import com.palmerodev.fww.wrappers.WrapperRepository
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
@@ -19,7 +21,12 @@ class WrapWithWidgetIntention(private val wrapperName: String) : BaseIntentionAc
 
     override fun getText(): String = "Wrap with $wrapperName"
 
-    override fun startInWriteAction(): Boolean = true
+    // Marker-bearing wrappers launch a live template, which manages its own write command;
+    // markerless wrappers keep editing the document directly inside a write action.
+    override fun startInWriteAction(): Boolean {
+        val wrapper = WrapperRepository.byName(wrapperName) ?: return true
+        return !TabStops.hasTabStops(wrapper)
+    }
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
         if (editor == null || file == null) return false
@@ -44,6 +51,13 @@ class WrapWithWidgetIntention(private val wrapperName: String) : BaseIntentionAc
         val baseIndent = document
             .getText(TextRange(lineStart, startOffset))
             .takeWhile { it == ' ' || it == '\t' }
+
+        if (TabStops.hasTabStops(wrapper)) {
+            LiveTemplateWrapEngine.startWrap(
+                project, editor, wrapper, detected.text, baseIndent, startOffset, endOffset,
+            )
+            return
+        }
 
         val replacement = WrapperTemplateEngine.apply(wrapper, detected.text, baseIndent)
         document.replaceString(startOffset, endOffset, replacement)

@@ -41,7 +41,8 @@ The core flow, invoked from every `WrapWithWidgetIntention.isAvailable`/`invoke`
    flags like `isDirectChildOfFlex`, `isInsideStack`).
 3. **`WrapperContextMatcher.matches(wrapper, context)`** — decides visibility using the
    wrapper's `allowedParents` / `disallowedParents` / `requiresDirectParent` rules
-   (e.g. `Expanded`/`Flexible` only appear as direct children of `Row`/`Column`/`Flex`).
+   (e.g. `Expanded`/`Flexible` only appear as direct children of `Row`/`Column`/`Flex`;
+   `Positioned` only as a direct child of `Stack`).
 4. **`WrapperTemplateEngine.apply(wrapper, widgetText, baseIndent)`** — substitutes the
    detected source into the template's `${widget}` placeholder, handling multi-line
    widgets and re-indentation. The document edit then runs `CodeStyleManager.reformatRange`.
@@ -73,7 +74,7 @@ re-called after the user adds a custom wrapper in settings.
 - `WidgetWrapper` (in `model/`) is the definition: `name`, `template` (list of lines),
   `category`, `enabled`, parent rules, optional `warning`.
 - `BuiltInWrappers.ALL` holds the shipped wrappers (Align, AnimatedSize, Expanded,
-  Flexible, GestureDetector, InkWell, Opacity, SafeArea, SingleChildScrollView, Stack).
+  Flexible, GestureDetector, InkWell, Opacity, Positioned, SafeArea, SingleChildScrollView, Stack).
 - Custom wrappers are stored as a JSON string in application settings and parsed by
   `WrapperJsonCodec` (Gson). `WrapperValidator` requires a non-blank name, a non-empty
   template, and the literal `${widget}` placeholder.

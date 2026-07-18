@@ -5,6 +5,18 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-07-18
+
+### Added
+
+- Live-template tab-stops in the "Wrap with…" actions: after wrapping, the caret jumps to
+  the first editable value and Tab cycles between them, finishing at an optional final
+  position. Templates now understand `${name:default}` tab-stops and `${end}` alongside the
+  existing `${widget}` placeholder. Built-in wrappers `Opacity`, `Align`, `Positioned`,
+  `AnimatedSize`, `GestureDetector` and `InkWell` jump straight to their editable fields.
+  Wrappers whose templates contain no markers behave exactly as before.
+- Built-in `Positioned` wrapper, offered only for direct children of `Stack`.
+
 ## [1.2.1] - 2026-07-18
 
 ### Breaking

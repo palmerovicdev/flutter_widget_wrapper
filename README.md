@@ -4,7 +4,7 @@ Flutter Widget Wrapper is an IntelliJ Platform plugin that adds context-aware
 Flutter widget wrappers to the `Alt+Enter` intention menu. Wrap a widget without
 manually moving code, fixing indentation, or rebuilding its constructor.
 
-![Version](https://img.shields.io/badge/version-1.2.1-blue)
+![Version](https://img.shields.io/badge/version-1.2.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2026.1%2B-purple)
 
@@ -12,9 +12,10 @@ manually moving code, fixing indentation, or rebuilding its constructor.
 
 - Wrap Flutter widgets directly from the `Alt+Enter` menu.
 - Includes `Align`, `AnimatedSize`, `Flexible`, `GestureDetector`, `InkWell`,
-  `Opacity`, `SafeArea`, `SingleChildScrollView`, and `Stack`.
+  `Opacity`, `Positioned`, `SafeArea`, `SingleChildScrollView`, and `Stack`.
 - Shows context-sensitive wrappers only where they are valid. For example,
-  `Flexible` is offered only for direct children of `Row`, `Column`, or `Flex`.
+  `Flexible` is offered only for direct children of `Row`, `Column`, or `Flex`,
+  and `Positioned` only for direct children of `Stack`.
 - Wrap several sibling widgets in a `Row`/`Column`/`Flex` `children:` list with a
   single `Stack` via `Alt+Enter`.
 - Preserves indentation and reformats the generated Dart code.

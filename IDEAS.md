@@ -58,15 +58,21 @@ corregir la documentación.
 
 ### 2.2. `isInsideStack` se calcula pero nadie lo usa
 
-`FlutterContextAnalyzer` rellena `FlutterWidgetContext.isInsideStack`, pero
-ningún wrapper lo aprovecha porque no existe `Positioned`. Es una capacidad de
-contexto ya construida y desperdiciada — ver idea #4.
+`FlutterContextAnalyzer` rellena `FlutterWidgetContext.isInsideStack`, pero el
+matcher sigue usando `allowedParents` / `requiresDirectParent` (como hace
+`Positioned` tras la idea #4). El flag queda redundante salvo que algún wrapper
+lo lea directamente.
+
+**Acción:** o bien cablear `isInsideStack` en `WrapperContextMatcher`, o
+eliminarlo junto con el cálculo en el analyzer.
 
 ---
 
 ## 3. Ideas de alto valor (recomendadas)
 
 ### Idea 1 — Unwrap / "Remove this widget"
+
+[NO IMPLEMENTAR]
 
 **Qué es.** La operación inversa a envolver: quitar el wrapper externo y
 promover su hijo. Ejemplo:
@@ -101,9 +107,9 @@ por ese contenido, re-indentar (lógica ya presente en
 
 ---
 
-[IMPLEMENTAR]
-
 ### Idea 2 — Live templates: colocar el cursor en el valor editable
+
+[HECHO]
 
 **Qué es.** Tras envolver, saltar automáticamente al primer valor que el usuario
 querrá editar, con tab-stops entre varios. Hoy, al envolver con
@@ -129,9 +135,9 @@ que conocer la nueva sintaxis.
 
 ---
 
-[IMPLEMENTAR]
-
 ### Idea 3 — Multi-child genérico (no solo Stack)
+
+[IMPLEMENTAR]
 
 **Qué es.** Hoy solo puedes envolver varios widgets seleccionados en `Stack`.
 Generalizarlo para envolverlos también en **`Column`, `Row`, `Wrap`, `Flex`,
@@ -155,9 +161,11 @@ wrappers pueden envolver selecciones múltiples y con qué campo de lista.
 
 ---
 
-[IMPLEMENTAR]
+[ECHO]
 
 ### Idea 4 — `Positioned` dentro de `Stack` (activar el contexto muerto)
+
+[IMPLEMENTAR]
 
 **Qué es.** Añadir un wrapper `Positioned` que se ofrezca **solo** cuando el
 widget es hijo directo de un `Stack`.
@@ -192,9 +200,9 @@ que funcionaría sin tocar el motor.
 
 ---
 
-[IMPLEMENTAR]
-
 ### Idea 5 — Auto-import para wrappers custom
+
+[IMPLEMENTAR]
 
 **Qué es.** Cuando un wrapper necesita un paquete (p.ej. `Consumer` de
 `provider`, o un widget de tu design system), insertar el `import`
@@ -223,6 +231,8 @@ nuevo campo.
 
 ### Idea 6 — Wrappers built-in que faltan y son los más usados
 
+[NO IMPLEMENTAR]
+
 Añadir los wraps de mayor frecuencia real en Flutter, hoy ausentes:
 `Padding`, `Container`, `Center`, `Expanded` (ver §2.1), `SizedBox`,
 `ClipRRect`, `AspectRatio`, `Visibility`, `Tooltip`, `Card`, `DecoratedBox`,
@@ -236,9 +246,9 @@ la idea 2 para los valores editables (`padding`, `width`, `height`, etc.).
 
 ---
 
-[IMPLEMENTAR]
-
 ### Idea 7 — Chooser único "Wrap with…" (popup buscable)
+
+[IMPLEMENTAR]
 
 **Qué es.** Una sola acción (con atajo asignable) que abra un popup filtrable
 mostrando **solo** los wrappers válidos en el contexto actual, en lugar de N
@@ -257,9 +267,9 @@ individuales (o sustituirlas mediante una opción en settings).
 
 ---
 
-[IMPLEMENTAR]
-
 ### Idea 8 — Wrappers por proyecto (no solo a nivel aplicación)
+
+[IMPLEMENTAR]
 
 **Qué es.** Hoy `FlutterWrapperSettings` es `Service.Level.APP`: los wrappers son
 globales del IDE. Permitir además wrappers **por proyecto**, versionables en el
@@ -278,9 +288,9 @@ app-level + project-level. Requiere pensar precedencias y el flujo de `sync` de
 
 ---
 
-[IMPLEMENTAR]
-
 ### Idea 9 — Packs / presets de gestión de estado y librerías
+
+[IMPLEMENTAR]
 
 **Qué es.** Conjuntos de wrappers listos para importar con un clic:
 - **Provider/Riverpod:** `Consumer`, `Consumer<T>`, `ChangeNotifierProvider`.

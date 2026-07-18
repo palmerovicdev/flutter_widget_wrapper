@@ -32,6 +32,19 @@ class WrapperContextMatcherTest {
         requiresDirectParent = true,
     )
 
+    private val positioned = WidgetWrapper(
+        name = "Positioned",
+        template = listOf(
+            "Positioned(",
+            "  top: 0,",
+            "  left: 0,",
+            "  child: \${widget},",
+            ")",
+        ),
+        allowedParents = listOf("Stack"),
+        requiresDirectParent = true,
+    )
+
     @Test
     fun `SafeArea appears on any widget with no parent`() {
         assertTrue(WrapperContextMatcher.matches(safeArea, ctx()))
@@ -55,6 +68,27 @@ class WrapperContextMatcherTest {
     @Test
     fun `Expanded is hidden when parent is Column but requiresDirectParent and there is no parent`() {
         assertFalse(WrapperContextMatcher.matches(expanded, ctx(parent = null)))
+    }
+
+    @Test
+    fun `Positioned shows as direct child of Stack`() {
+        assertTrue(WrapperContextMatcher.matches(positioned, ctx(parent = "Stack")))
+    }
+
+    @Test
+    fun `Positioned is hidden when Stack is only an ancestor`() {
+        assertFalse(
+            WrapperContextMatcher.matches(
+                positioned,
+                ctx(parent = "Padding", ancestors = listOf("Stack")),
+            )
+        )
+    }
+
+    @Test
+    fun `Positioned is hidden outside Stack`() {
+        assertFalse(WrapperContextMatcher.matches(positioned, ctx(parent = "Column")))
+        assertFalse(WrapperContextMatcher.matches(positioned, ctx(parent = null)))
     }
 
     @Test
