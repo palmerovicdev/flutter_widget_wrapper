@@ -6,7 +6,9 @@ import com.intellij.codeInsight.template.impl.ConstantNode
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
+import com.palmerodev.fww.detection.ConstContext
 import com.palmerodev.fww.model.WidgetWrapper
 
 /**
@@ -24,7 +26,7 @@ object LiveTemplateWrapEngine {
 
     /**
      * Replaces `[startOffset, endOffset)` in [editor] with the rendered wrapper and starts the
-     * template. Must be called outside an enclosing write action — [TemplateManager.startTemplate]
+     * template. [constKeywords] (all before [startOffset]) are removed in the same command. Must be called outside an enclosing write action — [TemplateManager.startTemplate]
      * runs its own command (hence `WrapWithWidgetIntention.startInWriteAction()` returns false
      * for marker-bearing wrappers).
      */
@@ -36,13 +38,15 @@ object LiveTemplateWrapEngine {
         baseIndent: String,
         startOffset: Int,
         endOffset: Int,
+        constKeywords: List<TextRange> = emptyList(),
     ) {
         val template = buildTemplate(project, wrapper, widgetText, baseIndent)
         val document = editor.document
         WriteCommandAction.runWriteCommandAction(project) {
             document.replaceString(startOffset, endOffset, "")
+            val start = startOffset - ConstContext.removeKeywords(document, constKeywords)
             PsiDocumentManager.getInstance(project).commitDocument(document)
-            editor.caretModel.moveToOffset(startOffset)
+            editor.caretModel.moveToOffset(start)
         }
         TemplateManager.getInstance(project).startTemplate(editor, template)
     }

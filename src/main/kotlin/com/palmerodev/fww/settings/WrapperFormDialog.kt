@@ -1,36 +1,47 @@
 package com.palmerodev.fww.settings
 
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.model.WidgetWrapper
+import com.palmerodev.fww.wrappers.BuiltInWrappers
+import com.palmerodev.fww.wrappers.TabStops
+import com.palmerodev.fww.wrappers.WrapperTemplateEngine
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.Font
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 
+/**
+ * Create/edit form for a custom wrapper.
+ *
+ * [takenNames] are the custom wrappers the name must not collide with. A built-in name is
+ * allowed and turns the wrapper into an override of that built-in (with a warning).
+ */
 class WrapperFormDialog(
-    private val existingNames: Set<String>,
+    private val takenNames: Set<String>,
     private val initial: WidgetWrapper? = null,
     private val allowNameChange: Boolean = true,
+    private val builtInNames: Set<String> = BuiltInWrappers.ALL.mapTo(mutableSetOf()) { it.name },
+    categories: Collection<String> = BuiltInWrappers.ALL.map { it.category },
 ) : DialogWrapper(true) {
 
     private val nameField = JBTextField()
     private val descriptionField = JBTextField()
-    private val categoryField = JBTextField()
-    private val templateArea = JBTextArea().apply {
-        rows = 10
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+    private val categoryField = ComboBox((categories + "Custom").distinct().sorted().toTypedArray()).apply {
+        isEditable = true
     }
+    private val templateArea = DartCodeField.create(viewer = false)
+    private val previewArea = DartCodeField.create(viewer = true)
     private val allowedField = JBTextField()
     private val disallowedField = JBTextField()
     private val requiresDirectParentCheck = JBCheckBox()
@@ -45,13 +56,31 @@ class WrapperFormDialog(
         )
         initial?.let { populate(it) }
         nameField.isEnabled = allowNameChange
+        templateArea.addDocumentListener(object : DocumentListener {
+            override fun documentChanged(event: DocumentEvent) = updatePreview()
+        })
+        updatePreview()
         init()
+    }
+
+    private val categoryText: String
+        get() = categoryField.editor.item?.toString()?.trim().orEmpty()
+
+    /** Live preview of the template applied to `Text('Hello')`, tab-stops at their defaults. */
+    private fun updatePreview() {
+        val lines = templateArea.text.split('\n')
+        previewArea.text = if (lines.none { it.contains($$"${widget}") }) {
+            FlutterWidgetWrapperBundle.message("settings.form.error.template")
+        } else {
+            val sample = WidgetWrapper(name = "preview", template = lines.map(TabStops::stripToDefaults))
+            WrapperTemplateEngine.apply(sample, "Text('Hello')", "")
+        }
     }
 
     private fun populate(w: WidgetWrapper) {
         nameField.text = w.name
         descriptionField.text = w.description.orEmpty()
-        categoryField.text = w.category
+        categoryField.editor.item = w.category
         templateArea.text = w.template.joinToString("\n")
         allowedField.text = w.allowedParents.joinToString(", ")
         disallowedField.text = w.disallowedParents.joinToString(", ")
@@ -62,20 +91,19 @@ class WrapperFormDialog(
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridBagLayout())
         panel.border = JBUI.Borders.empty(8)
-        panel.preferredSize = Dimension(560, 520)
+        panel.preferredSize = Dimension(640, 680)
 
         var row = 0
         addRow(panel, row++, "settings.form.label.name", nameField)
         addRow(panel, row++, "settings.form.label.description", descriptionField)
         addRow(panel, row++, "settings.form.label.category", categoryField)
 
-        val templateScroll = JBScrollPane(templateArea)
-        templateScroll.preferredSize = Dimension(520, 200)
+        templateArea.preferredSize = Dimension(520, 200)
         addRow(
             panel,
             row++,
             "settings.form.label.template",
-            templateScroll,
+            templateArea,
             fillVertical = true,
             withHelp = true,
         )
@@ -95,7 +123,10 @@ class WrapperFormDialog(
         addRow(panel, row++, "settings.form.label.requiresDirectParent", requiresDirectParentCheck)
         addRow(panel, row++, "settings.form.label.warning", warningField)
 
-        if (categoryField.text.isBlank()) categoryField.text = "Custom"
+        previewArea.preferredSize = Dimension(520, 140)
+        addRow(panel, row++, "settings.detail.preview", previewArea, fillVertical = true)
+
+        if (categoryText.isBlank()) categoryField.editor.item = "Custom"
         if (allowedField.text.isBlank()) allowedField.text = "any"
         return panel
     }
@@ -144,7 +175,7 @@ class WrapperFormDialog(
             )
         }
         val originalName = initial?.name
-        if (name != originalName && name in existingNames) {
+        if (name != originalName && name in takenNames) {
             return ValidationInfo(
                 FlutterWidgetWrapperBundle.message("settings.form.error.duplicate", name),
                 nameField,
@@ -156,6 +187,12 @@ class WrapperFormDialog(
                 templateArea,
             )
         }
+        if (name in builtInNames) {
+            return ValidationInfo(
+                FlutterWidgetWrapperBundle.message("settings.form.warning.overridesBuiltIn", name),
+                nameField,
+            ).asWarning().withOKEnabled()
+        }
         return null
     }
 
@@ -163,7 +200,7 @@ class WrapperFormDialog(
         result = WidgetWrapper(
             name = nameField.text.trim(),
             description = descriptionField.text.trim().ifBlank { null },
-            category = categoryField.text.trim().ifBlank { "Custom" },
+            category = categoryText.ifBlank { "Custom" },
             template = templateArea.text.split('\n'),
             allowedParents = parseList(allowedField.text).ifEmpty { listOf("any") },
             disallowedParents = parseList(disallowedField.text),

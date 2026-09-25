@@ -23,7 +23,8 @@ class WrapIntentionRegistrar : ProjectActivity {
         private val lock = Any()
 
         /**
-         * Registers one intention per wrapper, plus the two singleton intentions.
+         * Registers one intention per wrapper, plus the singleton intentions, and
+         * unregisters those whose wrapper no longer exists.
          *
          * Idempotent and self-healing: what is already registered is derived from
          * [IntentionManager] itself rather than from a local bookkeeping set, so a
@@ -39,16 +40,27 @@ class WrapIntentionRegistrar : ProjectActivity {
 
         private fun doSync() {
             val manager = IntentionManager.getInstance()
+            val names = wrapperNames()
+
+            // Drop intentions of custom wrappers that were renamed or deleted.
+            for (action in manager.intentionActions) {
+                val name = RegisteredWrapWithWidgetIntention.wrapperNameOf(implementationIdOf(action)) ?: continue
+                if (name !in names) manager.unregisterIntention(action)
+            }
+
             val registered = manager.intentionActions.mapTo(mutableSetOf()) { implementationIdOf(it) }
 
             if (CreateWrapperFromWidgetIntention::class.java.name !in registered) {
                 manager.addAction(CreateWrapperFromWidgetIntention())
             }
-            if (WrapSelectionWithStackIntention::class.java.name !in registered) {
-                manager.addAction(WrapSelectionWithStackIntention())
+            if (WrapSelectionIntention::class.java.name !in registered) {
+                manager.addAction(WrapSelectionIntention())
+            }
+            if (WrapWithChooserIntention::class.java.name !in registered) {
+                manager.addAction(WrapWithChooserIntention())
             }
 
-            for (name in wrapperNames()) {
+            for (name in names) {
                 val action = RegisteredWrapWithWidgetIntention(name)
                 if (action.getImplementationClassName() !in registered) {
                     manager.addAction(action)

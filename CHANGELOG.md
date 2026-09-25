@@ -5,6 +5,50 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Surround With (`Ctrl+Alt+T` / `⌥⌘T`) for Flutter widgets: select a widget, or several
+  siblings of a Row/Column/Flex `children:` list, and pick a wrapper.
+- Wrapping several selected siblings works with any wrapper whose `${widget}` sits in a
+  list (built-in `Stack` or custom ones like `Wrap(children: [${widget}])`); with more
+  than one, a searchable chooser opens.
+- Optional single "Wrap with…" entry (Settings) that opens a searchable popup instead of
+  one `Alt+Enter` entry per wrapper.
+- Optional "only on the constructor name" mode (Settings), so wrappers are not offered
+  while the caret is inside a widget's arguments.
+- Wrapper entries show an icon, and parent-specific wrappers (Flexible under a Row,
+  Positioned under a Stack) are listed first.
+- The wrapper editor uses a Dart editor with syntax highlighting, shows a live preview
+  while typing, and offers existing categories in an editable combo box.
+- Settings: speed search in the wrapper tree, double-click to edit, and Dart highlighting
+  in the template and preview panes.
+
+- `Alt+Enter` preview for every wrapper. Wrappers with tab-stops (AnimatedSize,
+  GestureDetector, InkWell, Align, Positioned, Opacity) had no preview because they
+  run as live templates; the preview now shows them with their default values.
+- "Create wrapper from …" shows the template it will save in the preview pane, and
+  confirms with a notification (with an "Open settings" action) instead of a modal dialog.
+- Wrapper warnings are shown: as a hint after wrapping (e.g. InkWell's "needs a
+  Material ancestor") and in the Settings detail panel.
+- Built-in wrappers can be customized from Settings: editing a built-in saves a custom
+  wrapper with the same name that overrides it; deleting the override restores it.
+- Import reports how many wrappers were added, replaced, kept and skipped as invalid,
+  and asks before replacing custom wrappers with the same name.
+
+### Fixed
+
+- Wrapping a widget with a wrapper that contains a closure (GestureDetector, InkWell,
+  or a custom one) inside a `const` expression no longer produces "Invalid constant
+  value": the enclosing `const` keywords are removed.
+- Intentions of renamed or deleted custom wrappers are unregistered instead of lingering
+  for the rest of the session.
+
+### Changed
+
+- Faster `Alt+Enter`: the merged wrapper list is cached per settings state, and the
+  widget under the caret is detected once per caret position instead of once per wrapper.
+- Intention names, dialog titles and import/export messages moved to the message bundle.
+
 ## [1.2.4] - 2026-09-25
 
 ### Changed

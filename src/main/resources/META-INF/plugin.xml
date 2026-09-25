@@ -37,6 +37,11 @@
             displayName="Flutter Widget Wrapper"
             instance="com.palmerodev.fww.settings.WrapperSettingsConfigurable"/>
         <postStartupActivity implementation="com.palmerodev.fww.intention.WrapIntentionRegistrar"/>
+        <lang.surroundDescriptor
+            language="Dart"
+            implementationClass="com.palmerodev.fww.surround.WidgetSurroundDescriptor"/>
+        <notificationGroup id="Flutter Widget Wrapper" displayType="BALLOON"
+                           key="notification.group" bundle="messages.FlutterWidgetWrapperBundle"/>
     </extensions>
 
 </idea-plugin>

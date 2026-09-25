@@ -17,6 +17,12 @@ class FlutterWrapperSettings : PersistentStateComponent<FlutterWrapperSettings> 
     var customWrappersJson: String = ""
     var disabledBuiltInNames: MutableSet<String> = mutableSetOf()
 
+    /** Offer one "Wrap with…" chooser instead of one Alt+Enter entry per wrapper. */
+    var groupWrappers: Boolean = false
+
+    /** Offer wrappers only when the caret is on the constructor name, not in its arguments. */
+    var caretOnNameOnly: Boolean = false
+
     override fun getState(): FlutterWrapperSettings = this
 
     override fun loadState(state: FlutterWrapperSettings) {

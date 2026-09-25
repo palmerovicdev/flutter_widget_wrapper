@@ -1,5 +1,6 @@
 package com.palmerodev.fww.settings
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserFactory
@@ -10,13 +11,14 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.CheckboxTree
 import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
+import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.JBColor
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.TreeUIHelper
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
 import com.palmerodev.fww.FlutterWidgetWrapperBundle
@@ -30,6 +32,7 @@ import com.palmerodev.fww.wrappers.WrapperValidator
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Font
+import java.awt.event.MouseEvent
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -45,8 +48,16 @@ class WrapperSettingsConfigurable : Configurable {
     private val disabledBuiltIns = mutableSetOf<String>()
     private var customWrappers = mutableListOf<WidgetWrapper>()
 
-    private class CategoryTag(val name: String)
-    private class Entry(var wrapper: WidgetWrapper, val builtIn: Boolean)
+    // toString() feeds the tree speed search.
+    private class CategoryTag(val name: String) {
+        override fun toString(): String = name
+    }
+
+    private class Entry(var wrapper: WidgetWrapper, val builtIn: Boolean, val overridesBuiltIn: Boolean = false) {
+        override fun toString(): String = wrapper.name
+    }
+
+    private val builtInNames: Set<String> = BuiltInWrappers.ALL.mapTo(mutableSetOf()) { it.name }
 
     private val rootNode = CheckedTreeNode("root")
     private lateinit var tree: CheckboxTree
@@ -54,8 +65,11 @@ class WrapperSettingsConfigurable : Configurable {
 
     private val detailTitle = JBLabel()
     private val detailMeta = JBLabel()
-    private val templateArea = readOnlyCode()
-    private val previewArea = readOnlyCode()
+    private val detailWarning = JBLabel(AllIcons.General.Warning)
+    private val templateArea = DartCodeField.create(viewer = true)
+    private val previewArea = DartCodeField.create(viewer = true)
+    private val groupWrappersCheck = JBCheckBox(FlutterWidgetWrapperBundle.message("settings.option.group"))
+    private val caretOnNameCheck = JBCheckBox(FlutterWidgetWrapperBundle.message("settings.option.caretOnName"))
     private var rootPanel: JComponent? = null
 
     override fun getDisplayName(): String = FlutterWidgetWrapperBundle.message("settings.title")
@@ -66,7 +80,7 @@ class WrapperSettingsConfigurable : Configurable {
             .setAddAction { onAdd() }
             .setEditAction { onEdit() }
             .setRemoveAction { onRemove() }
-            .setEditActionUpdater { isCustomSelected() }
+            .setEditActionUpdater { selectedEntry() != null }
             .setRemoveActionUpdater { isCustomSelected() }
             .setAddActionName(FlutterWidgetWrapperBundle.message("settings.button.add"))
             .disableUpDownActions()
@@ -81,9 +95,19 @@ class WrapperSettingsConfigurable : Configurable {
             secondComponent = buildDetailPanel()
             preferredSize = Dimension(780, 480)
         }
-        rootPanel = splitter
+        val options = JPanel().apply {
+            layout = javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)
+            border = JBUI.Borders.emptyTop(8)
+            add(groupWrappersCheck)
+            add(caretOnNameCheck)
+        }
+        val root = JPanel(BorderLayout()).apply {
+            add(splitter, BorderLayout.CENTER)
+            add(options, BorderLayout.SOUTH)
+        }
+        rootPanel = root
         reset()
-        return splitter
+        return root
     }
 
     private fun createTree(): CheckboxTree {
@@ -100,6 +124,9 @@ class WrapperSettingsConfigurable : Configurable {
                         textRenderer.append(obj.wrapper.name)
                         if (obj.builtIn) {
                             textRenderer.append("  ${FlutterWidgetWrapperBundle.message("settings.tree.builtin")}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                        }
+                        if (obj.overridesBuiltIn) {
+                            textRenderer.append("  ${FlutterWidgetWrapperBundle.message("settings.detail.overridesBuiltIn")}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
                         }
                         obj.wrapper.description?.takeIf { it.isNotBlank() }?.let {
                             textRenderer.append("  — $it", SimpleTextAttributes.GRAYED_ATTRIBUTES)
@@ -119,6 +146,14 @@ class WrapperSettingsConfigurable : Configurable {
             showsRootHandles = true
             selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
             addTreeSelectionListener { updateDetail() }
+            TreeUIHelper.getInstance().installTreeSpeedSearch(this)
+            object : DoubleClickListener() {
+                override fun onDoubleClick(event: MouseEvent): Boolean {
+                    if (selectedEntry() == null) return false
+                    onEdit()
+                    return true
+                }
+            }.installOn(this)
         }
     }
 
@@ -144,7 +179,8 @@ class WrapperSettingsConfigurable : Configurable {
             detailTitle.font = detailTitle.font.deriveFont(Font.BOLD, detailTitle.font.size + 2f)
             add(detailTitle, BorderLayout.NORTH)
             detailMeta.foreground = JBColor.GRAY
-            add(detailMeta, BorderLayout.SOUTH)
+            add(detailMeta, BorderLayout.CENTER)
+            add(detailWarning, BorderLayout.SOUTH)
         }
         panel.add(header, BorderLayout.NORTH)
 
@@ -158,7 +194,7 @@ class WrapperSettingsConfigurable : Configurable {
 
     private fun labeledScroll(
         labelKey: String,
-        area: JBTextArea,
+        area: JComponent,
         withHelp: Boolean = false,
     ): JComponent =
         JPanel(BorderLayout(0, 4)).apply {
@@ -167,7 +203,7 @@ class WrapperSettingsConfigurable : Configurable {
                 if (withHelp) add(WrapperSyntaxHelp.createLabel(), BorderLayout.EAST)
             }
             add(labelRow, BorderLayout.NORTH)
-            add(JBScrollPane(area), BorderLayout.CENTER)
+            add(area, BorderLayout.CENTER)
         }
 
     // ---- model <-> tree ----------------------------------------------------
@@ -181,12 +217,16 @@ class WrapperSettingsConfigurable : Configurable {
     private fun rebuildTree(select: String? = null) {
         rootNode.removeAllChildren()
         val grouped = LinkedHashMap<String, MutableList<Entry>>()
+        val customNames = customWrappers.mapTo(mutableSetOf()) { it.name }
+        // A custom wrapper with a built-in's name replaces it, so only the override is listed.
         for (w in BuiltInWrappers.ALL) {
+            if (w.name in customNames) continue
             grouped.getOrPut(w.category) { mutableListOf() }
                 .add(Entry(w.copy(enabled = w.name !in disabledBuiltIns), builtIn = true))
         }
         for (w in customWrappers) {
-            grouped.getOrPut(w.category) { mutableListOf() }.add(Entry(w, builtIn = false))
+            grouped.getOrPut(w.category) { mutableListOf() }
+                .add(Entry(w, builtIn = false, overridesBuiltIn = w.name in builtInNames))
         }
         for ((category, entries) in grouped) {
             val categoryNode = CheckedTreeNode(CategoryTag(category))
@@ -204,7 +244,10 @@ class WrapperSettingsConfigurable : Configurable {
     }
 
     private fun recomputeFromTree() {
-        val newDisabled = mutableSetOf<String>()
+        // Overridden built-ins are not in the tree; keep their disabled flag for when the
+        // override is deleted.
+        val overridden = customWrappers.mapTo(mutableSetOf()) { it.name }
+        val newDisabled = disabledBuiltIns.filterTo(mutableSetOf()) { it in overridden }
         val enabledByName = mutableMapOf<String, Boolean>()
         for (categoryNode in rootNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
             for (leaf in categoryNode.children().toList().filterIsInstance<CheckedTreeNode>()) {
@@ -253,11 +296,15 @@ class WrapperSettingsConfigurable : Configurable {
             detailMeta.text = " "
             templateArea.text = ""
             previewArea.text = ""
+            detailWarning.isVisible = false
             return
         }
         val w = entry.wrapper
         detailTitle.text = w.name
         detailMeta.text = describe(entry)
+        val warning = w.warning?.takeIf { it.isNotBlank() }
+        detailWarning.text = warning?.let { FlutterWidgetWrapperBundle.message("settings.detail.warning", it) }
+        detailWarning.isVisible = warning != null
         templateArea.text = w.template.joinToString("\n")
         val validation = WrapperValidator.validate(w)
         previewArea.text = if (validation is WrapperValidator.Result.Invalid) {
@@ -269,10 +316,10 @@ class WrapperSettingsConfigurable : Configurable {
 
     private fun describe(entry: Entry): String {
         val w = entry.wrapper
-        val kind = if (entry.builtIn) {
-            FlutterWidgetWrapperBundle.message("settings.tree.builtin")
-        } else {
-            FlutterWidgetWrapperBundle.message("settings.detail.custom")
+        val kind = when {
+            entry.builtIn -> FlutterWidgetWrapperBundle.message("settings.tree.builtin")
+            entry.overridesBuiltIn -> FlutterWidgetWrapperBundle.message("settings.detail.overridesBuiltIn")
+            else -> FlutterWidgetWrapperBundle.message("settings.detail.custom")
         }
         val scope = when {
             w.requiresDirectParent -> FlutterWidgetWrapperBundle.message("settings.detail.directParent", w.allowedParents.joinToString(", "))
@@ -288,8 +335,13 @@ class WrapperSettingsConfigurable : Configurable {
     private fun allNames(): Set<String> =
         (BuiltInWrappers.ALL.map { it.name } + customWrappers.map { it.name }).toSet()
 
+    private fun categories(): List<String> =
+        (BuiltInWrappers.ALL + customWrappers).map { it.category }.distinct()
+
+    private fun customNames(): Set<String> = customWrappers.mapTo(mutableSetOf()) { it.name }
+
     private fun onAdd() {
-        val dialog = WrapperFormDialog(allNames())
+        val dialog = WrapperFormDialog(customNames(), categories = categories())
         if (!dialog.showAndGet()) return
         val wrapper = dialog.result ?: return
         customWrappers.add(wrapper)
@@ -298,9 +350,12 @@ class WrapperSettingsConfigurable : Configurable {
 
     private fun onEdit() {
         val entry = selectedEntry() ?: return
-        if (entry.builtIn) return
-        val others = allNames() - entry.wrapper.name
-        val dialog = WrapperFormDialog(others, initial = entry.wrapper)
+        if (entry.builtIn) {
+            onCustomizeBuiltIn(entry)
+            return
+        }
+        val others = customNames() - entry.wrapper.name
+        val dialog = WrapperFormDialog(others, initial = entry.wrapper, categories = categories())
         if (!dialog.showAndGet()) return
         val updated = dialog.result ?: return
         val idx = customWrappers.indexOfFirst { it.name == entry.wrapper.name }
@@ -312,13 +367,25 @@ class WrapperSettingsConfigurable : Configurable {
         rebuildTree(select = updated.name)
     }
 
+    /** Editing a built-in saves a custom wrapper with the same name, which overrides it. */
+    private fun onCustomizeBuiltIn(entry: Entry) {
+        val dialog = WrapperFormDialog(customNames(), initial = entry.wrapper, categories = categories())
+        if (!dialog.showAndGet()) return
+        val updated = dialog.result ?: return
+        customWrappers.add(updated.copy(enabled = entry.wrapper.enabled))
+        rebuildTree(select = updated.name)
+    }
+
     private fun onRemove() {
         val entry = selectedEntry() ?: return
         if (entry.builtIn) return
         val parent = rootPanel ?: return
         val choice = Messages.showYesNoDialog(
             parent,
-            FlutterWidgetWrapperBundle.message("settings.delete.confirm", entry.wrapper.name),
+            FlutterWidgetWrapperBundle.message(
+                if (entry.overridesBuiltIn) "settings.delete.confirm.override" else "settings.delete.confirm",
+                entry.wrapper.name,
+            ),
             FlutterWidgetWrapperBundle.message("settings.button.delete"),
             Messages.getQuestionIcon(),
         )
@@ -349,40 +416,99 @@ class WrapperSettingsConfigurable : Configurable {
 
     private fun onImport() {
         val parent = rootPanel ?: return
+        val title = FlutterWidgetWrapperBundle.message("settings.import.title")
         val descriptor = FileChooserDescriptor(true, false, false, false, false, false)
             .withExtensionFilter("json")
         val file = FileChooser.chooseFile(descriptor, parent, null, null) ?: return
         val content = runCatching { String(file.contentsToByteArray(), Charsets.UTF_8) }.getOrNull()
-            ?: return Messages.showErrorDialog(parent, "Could not read ${file.path}", "Import JSON")
-        val imported = WrapperJsonCodec.parseList(content).filter(WrapperValidator::isValid)
+            ?: return Messages.showErrorDialog(
+                parent,
+                FlutterWidgetWrapperBundle.message("settings.import.readError", file.path),
+                title,
+            )
+        val parsed = WrapperJsonCodec.parseList(content)
+        val imported = parsed.filter(WrapperValidator::isValid)
         if (imported.isEmpty()) {
-            Messages.showErrorDialog(parent, FlutterWidgetWrapperBundle.message("settings.import.empty"), "Import JSON")
+            Messages.showErrorDialog(parent, FlutterWidgetWrapperBundle.message("settings.import.empty"), title)
             return
         }
-        val existing = customWrappers.associateBy { it.name }.toMutableMap()
-        for (w in imported) existing[w.name] = w
+
+        val existing = customWrappers.associateByTo(LinkedHashMap()) { it.name }
+        val conflicts = imported.filter { it.name in existing }
+        var replace = true
+        if (conflicts.isNotEmpty()) {
+            val choice = Messages.showYesNoCancelDialog(
+                parent,
+                FlutterWidgetWrapperBundle.message(
+                    "settings.import.conflict",
+                    conflicts.joinToString("\n") { "• ${it.name}" },
+                ),
+                title,
+                FlutterWidgetWrapperBundle.message("settings.import.replace"),
+                FlutterWidgetWrapperBundle.message("settings.import.keep"),
+                Messages.getCancelButton(),
+                Messages.getQuestionIcon(),
+            )
+            if (choice == Messages.CANCEL) return
+            replace = choice == Messages.YES
+        }
+
+        var added = 0
+        var replaced = 0
+        var kept = 0
+        for (w in imported) {
+            when {
+                w.name !in existing -> added++
+                replace -> replaced++
+                else -> {
+                    kept++
+                    continue
+                }
+            }
+            existing[w.name] = w
+        }
         customWrappers = existing.values.toMutableList()
         rebuildTree()
+        Messages.showInfoMessage(
+            parent,
+            FlutterWidgetWrapperBundle.message("settings.import.summary", added, replaced, kept, parsed.size - imported.size),
+            title,
+        )
     }
 
     private fun onExport() {
         val parent = rootPanel ?: return
-        val descriptor = FileSaverDescriptor("Export wrappers", "Save custom wrappers as JSON", "json")
+        val title = FlutterWidgetWrapperBundle.message("settings.export.title")
+        val descriptor = FileSaverDescriptor(
+            title,
+            FlutterWidgetWrapperBundle.message("settings.export.description"),
+            "json",
+        )
         val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, parent)
         val baseDir = LocalFileSystem.getInstance().findFileByPath(System.getProperty("user.home"))
         val target = dialog.save(baseDir, "wrappers.json") ?: return
         runCatching { target.file.writeText(WrapperJsonCodec.encodeList(customWrappers)) }
-            .onFailure { Messages.showErrorDialog(parent, "Could not write file: ${it.message}", "Export JSON") }
+            .onFailure {
+                Messages.showErrorDialog(
+                    parent,
+                    FlutterWidgetWrapperBundle.message("settings.export.error", it.message.orEmpty()),
+                    title,
+                )
+            }
     }
 
     // ---- Configurable contract ---------------------------------------------
 
     override fun isModified(): Boolean =
         disabledBuiltIns != settings.disabledBuiltInNames ||
-            customWrappers != WrapperJsonCodec.parseList(settings.customWrappersJson)
+            customWrappers != WrapperJsonCodec.parseList(settings.customWrappersJson) ||
+            groupWrappersCheck.isSelected != settings.groupWrappers ||
+            caretOnNameCheck.isSelected != settings.caretOnNameOnly
 
     override fun apply() {
         settings.disabledBuiltInNames = disabledBuiltIns.toMutableSet()
+        settings.groupWrappers = groupWrappersCheck.isSelected
+        settings.caretOnNameOnly = caretOnNameCheck.isSelected
         settings.customWrappersJson =
             if (customWrappers.isEmpty()) "" else WrapperJsonCodec.encodeList(customWrappers)
         WrapIntentionRegistrar.syncRegistrations()
@@ -390,15 +516,12 @@ class WrapperSettingsConfigurable : Configurable {
 
     override fun reset() {
         reloadModelFromSettings()
+        groupWrappersCheck.isSelected = settings.groupWrappers
+        caretOnNameCheck.isSelected = settings.caretOnNameOnly
         rebuildTree()
     }
 
     override fun disposeUIResources() {
         rootPanel = null
-    }
-
-    private fun readOnlyCode() = JBTextArea().apply {
-        isEditable = false
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
     }
 }

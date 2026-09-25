@@ -74,8 +74,8 @@ implementado todavía salvo que se indique.
    - Otros: Tooltip, Semantics, RepaintBoundary, Dismissible, AspectRatio, FittedBox,
      ConstrainedBox, LayoutBuilder.
 9. **Postfix templates**, p. ej. `Text('a').opacity` + Tab.
-10. **Traducción al español** (`FlutterWidgetWrapperBundle_es.properties`), tras centralizar
-    los textos (fallo 1.5).
+10. ~~**Traducción al español**~~ — descartada: IntelliJ solo carga bundles de los idiomas
+    con *language pack* instalado (ja/ko/zh); un `_es.properties` nunca se cargaría.
 
 ## 5. Rendimiento y robustez
 
@@ -92,10 +92,18 @@ implementado todavía salvo que se indique.
 
 ## 6. Plan de versiones
 
-- **1.3:** fallos de la sección 1, preview en todos los wrappers, caché de rendimiento,
-  textos al bundle y traducción al español.
-- **1.4:** popup "Wrap with…" con búsqueda, Surround With, selección múltiple con cualquier
-  wrapper, editor de plantilla con resaltado y preview en vivo.
+- **1.3 (implementada, sin publicar):** fallos de la sección 1, preview en todos los
+  wrappers, caché de rendimiento, textos al bundle y desregistro de customs borrados.
+  Pendiente para 1.4: el estado compartido `cachedText`/`cachedCount` (requiere migrar a
+  `ModCommandAction`), junto con el resto de la sección 2.
+- **1.4 (implementada, sin publicar):** popup "Wrap with…" con búsqueda (opcional),
+  modo "solo sobre el nombre", Surround With, selección múltiple con cualquier wrapper de
+  lista, editor de plantilla con resaltado Dart y preview en vivo, combo de categorías,
+  prioridad e iconos, notificación en vez de diálogo modal, búsqueda y doble clic en el
+  árbol.
+  Queda fuera: submenú por wrapper (Editar/Ocultar), "Reset built-ins", export selectivo,
+  chips para padres, validación sintáctica con PSI y el estado compartido
+  `cachedText`/`cachedCount` (solo afecta al texto mostrado; migrar a `ModCommandAction`).
 - **1.5:** wrappers de proyecto, cambiar wrapper, tab-stops con opciones, reglas por slot y
   catálogo de presets.
 

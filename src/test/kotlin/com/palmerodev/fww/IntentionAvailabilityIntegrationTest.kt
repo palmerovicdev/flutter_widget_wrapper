@@ -4,7 +4,7 @@ import com.intellij.codeInsight.intention.IntentionManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.palmerodev.fww.intention.WrapIntentionRegistrar
-import com.palmerodev.fww.intention.WrapSelectionWithStackIntention
+import com.palmerodev.fww.intention.WrapSelectionIntention
 import com.palmerodev.fww.intention.WrapWithWidgetIntention
 
 /**
@@ -52,7 +52,7 @@ class IntentionAvailabilityIntegrationTest : BasePlatformTestCase() {
         val selEnd = text.indexOf("Text('B')") + "Text('B')".length
         myFixture.editor.selectionModel.setSelection(selStart, selEnd)
 
-        val intention = WrapSelectionWithStackIntention()
+        val intention = WrapSelectionIntention()
         assertTrue(
             "Stack intention should be available for two selected siblings",
             intention.isAvailable(project, myFixture.editor, myFixture.file),

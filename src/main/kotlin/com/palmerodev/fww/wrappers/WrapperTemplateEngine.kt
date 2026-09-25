@@ -6,6 +6,16 @@ object WrapperTemplateEngine {
 
     private const val PLACEHOLDER = $$"${widget}"
 
+    /**
+     * True when `${widget}` sits in a list (`children: [${widget}]`), so several sibling
+     * widgets can be wrapped together.
+     */
+    fun hasListSlot(wrapper: WidgetWrapper): Boolean {
+        val joined = wrapper.template.joinToString("\n")
+        val at = joined.indexOf(PLACEHOLDER)
+        return at >= 0 && joined.substring(0, at).trimEnd().endsWith('[')
+    }
+
     fun apply(wrapper: WidgetWrapper, widgetText: String, baseIndent: String): String {
         val widgetLines = widgetText.lines()
         val builtLines = mutableListOf<String>()
