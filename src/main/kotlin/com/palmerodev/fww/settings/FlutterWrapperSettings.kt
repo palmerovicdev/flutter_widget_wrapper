@@ -26,8 +26,5 @@ class FlutterWrapperSettings : PersistentStateComponent<FlutterWrapperSettings> 
     companion object {
         fun getInstance(): FlutterWrapperSettings =
             ApplicationManager.getApplication().getService(FlutterWrapperSettings::class.java)
-
-        fun getInstanceOrNull(): FlutterWrapperSettings? =
-            ApplicationManager.getApplication()?.getServiceIfCreated(FlutterWrapperSettings::class.java)
     }
 }

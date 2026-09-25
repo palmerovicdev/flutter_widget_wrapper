@@ -5,13 +5,47 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-09-25
+
+### Changed
+
+- Minimum supported IDE raised to IntelliJ IDEA 2026.1.5 (`since-build 261.27258`).
+  Older 2026.1.x builds are no longer supported.
+- Built against IntelliJ IDEA 2026.1.5 and Dart plugin 509.0.0 (compatible with
+  2025.3+ with no upper bound), the Dart release the Marketplace resolves for
+  IntelliJ IDEA 2026.2 and 2026.3. The 1.2.3 verification failed because Dart could
+  not be resolved for those builds, which made every `com.jetbrains.lang.dart` PSI
+  class show up as missing.
+
+## [1.2.3] - 2026-08-14
+
 ### Added
 
-- Context-help (?) control next to the Template field in Settings and in the
+- Context-help control next to the Template field in Settings and in the
   create/edit wrapper dialog, explaining `${widget}`, tab-stops, `${end}`, and
   parent rules.
 
+### Fixed
+
+- Custom wrappers no longer disappear from the `Alt+Enter` menu. Startup
+  registration read the settings service with `getServiceIfCreated`, which
+  returns `null` until something else touches it, so only built-in wrappers were
+  registered until the user re-saved the settings. Registration now instantiates
+  the service, and it is idempotent and self-healing: the already-registered set
+  is derived from `IntentionManager` itself, so a startup run that is cancelled
+  or fails midway is repaired on the next sync instead of leaving the menu empty
+  for the whole session.
+
 ### Changed
+
+- The template syntax help is now a "Syntax help" link that opens a scrollable
+  popup instead of a hover tooltip. The reference is taller than a tooltip can
+  be, so the tooltip opened under the mouse pointer and flickered, making the
+  text unreadable.
+- Explicit compatibility range: `since-build 261` with no upper bound, so the
+  plugin installs on IntelliJ IDEA 2026.2 and later.
+- Replaced the `CheckboxTree(renderer, root)` constructor deprecated in 2026.2
+  with the variant that takes an explicit `CheckPolicy`.
 
 - README documents template syntax, tab-stops, parent rules, and how the
   detect → analyze → match → apply pipeline works; settings screenshot updated

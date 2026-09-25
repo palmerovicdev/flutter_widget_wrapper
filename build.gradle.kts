@@ -12,11 +12,21 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        intellijIdea("2026.1.3")
+        intellijIdea("2026.1.5")
         testFramework(TestFrameworkType.Platform)
 
         // Dart is not bundled with IntelliJ IDEA; pull it from Marketplace for PSI APIs.
-        plugin("Dart", "507.0.0")
+        plugin("Dart", "509.0.0")
+    }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            // Minimum is 2026.1.5 (261.27258); no upper bound so 2026.2+ can install it too.
+            sinceBuild = "261.27258"
+            untilBuild = provider { null }
+        }
     }
 }
 

@@ -6,7 +6,9 @@ import com.palmerodev.fww.settings.FlutterWrapperSettings
 object WrapperRepository {
 
     fun all(): List<WidgetWrapper> {
-        val settings = FlutterWrapperSettings.getInstanceOrNull()
+        // getInstance(), not getInstanceOrNull(): the latter hid every custom wrapper
+        // whenever the settings service had not been instantiated yet.
+        val settings = runCatching { FlutterWrapperSettings.getInstance() }.getOrNull()
         return merge(
             settings?.disabledBuiltInNames.orEmpty(),
             settings?.customWrappersJson.orEmpty(),

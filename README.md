@@ -4,9 +4,9 @@ Flutter Widget Wrapper is an IntelliJ Platform plugin that adds context-aware
 Flutter widget wrappers to the `Alt+Enter` intention menu. Wrap a widget without
 manually moving code, fixing indentation, or rebuilding its constructor.
 
-![Version](https://img.shields.io/badge/version-1.2.2-blue)
+![Version](https://img.shields.io/badge/version-1.2.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2026.1%2B-purple)
+![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2026.1.5%2B-purple)
 
 ## Features
 
@@ -228,7 +228,7 @@ To launch a sandbox IDE with the plugin installed:
 
 ## Compatibility
 
-- IntelliJ Platform `2026.1` or later
+- IntelliJ Platform `2026.1.5` or later
 - Dart plugin (required; provides the PSI used for widget detection)
 - IDEs that support the Dart plugin
 - Flutter projects using Dart source files

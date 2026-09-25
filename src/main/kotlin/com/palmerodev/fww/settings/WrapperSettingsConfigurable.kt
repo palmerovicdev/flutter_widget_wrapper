@@ -8,6 +8,7 @@ import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.CheckboxTree
+import com.intellij.ui.CheckboxTreeBase
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.JBColor
 import com.intellij.ui.JBSplitter
@@ -107,7 +108,9 @@ class WrapperSettingsConfigurable : Configurable {
                 }
             }
         }
-        return object : CheckboxTree(renderer, rootNode) {
+        // Explicit policy: the two-argument constructor is deprecated since 2026.2.
+        val checkPolicy = CheckboxTreeBase.CheckPolicy(true, true, false, true)
+        return object : CheckboxTree(renderer, rootNode, checkPolicy) {
             override fun onNodeStateChanged(node: CheckedTreeNode?) {
                 recomputeFromTree()
             }
