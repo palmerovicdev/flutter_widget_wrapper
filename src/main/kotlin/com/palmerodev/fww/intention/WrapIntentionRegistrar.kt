@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.palmerodev.fww.settings.FlutterWrapperSettings
 import com.palmerodev.fww.wrappers.BuiltInWrappers
+import com.palmerodev.fww.wrappers.ProjectWrappers
 import com.palmerodev.fww.wrappers.WrapperJsonCodec
 import com.palmerodev.fww.wrappers.WrapperValidator
 
@@ -59,6 +60,9 @@ class WrapIntentionRegistrar : ProjectActivity {
             if (WrapWithChooserIntention::class.java.name !in registered) {
                 manager.addAction(WrapWithChooserIntention())
             }
+            if (ReplaceWrapperIntention::class.java.name !in registered) {
+                manager.addAction(ReplaceWrapperIntention())
+            }
 
             for (name in names) {
                 val action = RegisteredWrapWithWidgetIntention(name)
@@ -68,7 +72,7 @@ class WrapIntentionRegistrar : ProjectActivity {
             }
         }
 
-        /** Built-in names first, then valid custom ones, de-duplicated. */
+        /** Built-in names first, then valid custom and project ones, de-duplicated. */
         private fun wrapperNames(): Set<String> {
             // getInstance(), not getInstanceOrNull(): during startup registration the
             // service has usually not been touched yet, and skipping it here silently
@@ -82,6 +86,7 @@ class WrapIntentionRegistrar : ProjectActivity {
             return LinkedHashSet<String>().apply {
                 BuiltInWrappers.ALL.forEach { add(it.name) }
                 addAll(customNames)
+                ProjectWrappers.fromOpenProjects().forEach { add(it.name) }
             }
         }
 

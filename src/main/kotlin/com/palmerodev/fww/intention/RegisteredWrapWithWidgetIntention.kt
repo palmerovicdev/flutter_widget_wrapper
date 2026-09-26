@@ -2,6 +2,7 @@ package com.palmerodev.fww.intention
 
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.codeInsight.intention.IntentionActionDelegate
+import com.intellij.codeInsight.intention.IntentionActionWithOptions
 import com.intellij.codeInsight.intention.PriorityAction
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.editor.Editor
@@ -19,7 +20,7 @@ import javax.swing.Icon
 internal class RegisteredWrapWithWidgetIntention private constructor(
     private val delegate: WrapWithWidgetIntention,
     private val implementationId: String,
-) : IntentionAction by delegate, IntentionActionDelegate, PriorityAction, Iconable {
+) : IntentionAction by delegate, IntentionActionDelegate, PriorityAction, Iconable, IntentionActionWithOptions {
 
     constructor(wrapperName: String) : this(
         delegate = WrapWithWidgetIntention(wrapperName),
@@ -35,6 +36,8 @@ internal class RegisteredWrapWithWidgetIntention private constructor(
     override fun getPriority(): PriorityAction.Priority = delegate.priority
 
     override fun getIcon(flags: Int): Icon = delegate.getIcon(flags)
+
+    override fun getOptions(): List<IntentionAction> = delegate.options
 
     override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo =
         delegate.generatePreview(project, editor, file)

@@ -27,9 +27,10 @@ class CreateWrapperFromWidgetIntention : BaseIntentionAction() {
     override fun getFamilyName(): String =
         FlutterWidgetWrapperBundle.message("intention.family.createWrapper")
 
-    override fun getText(): String = cachedText ?: getFamilyName()
+    override fun getText(): String = cachedText.get() ?: getFamilyName()
 
-    private var cachedText: String? = null
+    // Shared instance; see WrapSelectionIntention for why the text is thread-local.
+    private val cachedText = ThreadLocal<String?>()
 
     override fun startInWriteAction(): Boolean = false
 
@@ -39,7 +40,7 @@ class CreateWrapperFromWidgetIntention : BaseIntentionAction() {
         val offset = editor.caretModel.offset
         val detected = FlutterWidgetDetector.detect(file, offset) ?: return false
         val field = WrappableFieldDetector.find(detected.text) ?: return false
-        cachedText = FlutterWidgetWrapperBundle.message("intention.text.createWrapper", detected.name)
+        cachedText.set(FlutterWidgetWrapperBundle.message("intention.text.createWrapper", detected.name))
         return field.fieldName in WrappableFieldDetector.WRAPPABLE_FIELDS
     }
 

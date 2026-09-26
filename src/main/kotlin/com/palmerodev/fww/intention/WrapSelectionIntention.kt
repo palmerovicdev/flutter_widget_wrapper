@@ -7,7 +7,6 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Iconable
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
-import com.intellij.ui.SimpleListCellRenderer
 import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.FlutterWidgetWrapperIcons
 import com.palmerodev.fww.detection.MultiWidgetSelectionDetector
@@ -23,17 +22,22 @@ import javax.swing.Icon
  */
 class WrapSelectionIntention : BaseIntentionAction(), Iconable {
 
-    private var cachedCount: Int = 0
-    private var cachedSingle: String? = null
+    /** (selected count, single applicable wrapper) from the last [isAvailable] on this thread. */
+    private class Label(val count: Int, val single: String?)
+
+    // One registered instance serves every editor; the platform asks for the text right
+    // after isAvailable on the same thread, so a thread-local keeps concurrent editors apart.
+    private val label = ThreadLocal<Label?>()
 
     override fun getFamilyName(): String = FlutterWidgetWrapperBundle.message("intention.family.wrapSelection")
 
     override fun getText(): String {
-        val single = cachedSingle
+        val current = label.get()
+        val single = current?.single
         return when {
-            cachedCount == 0 -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.generic")
-            single != null -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection", cachedCount, single)
-            else -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.chooser", cachedCount)
+            current == null -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.generic")
+            single != null -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection", current.count, single)
+            else -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.chooser", current.count)
         }
     }
 
@@ -43,27 +47,25 @@ class WrapSelectionIntention : BaseIntentionAction(), Iconable {
     override fun startInWriteAction(): Boolean = false
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        cachedCount = 0
-        cachedSingle = null
+        label.remove()
         if (editor == null || file == null || !file.name.endsWith(".dart")) return false
         val selection = analyze(editor, file) ?: return false
-        val wrappers = listWrappers()
+        val wrappers = listWrappers(project)
         if (wrappers.isEmpty()) return false
-        cachedCount = selection.elements.size
-        cachedSingle = wrappers.singleOrNull()?.name
+        label.set(Label(selection.elements.size, wrappers.singleOrNull()?.name))
         return true
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         if (editor == null || file == null) return
-        val wrappers = listWrappers()
+        val wrappers = listWrappers(project)
         when {
             wrappers.isEmpty() -> return
             wrappers.size == 1 -> wrap(project, editor, file, wrappers.single())
             else -> JBPopupFactory.getInstance()
                 .createPopupChooserBuilder(wrappers)
                 .setTitle(FlutterWidgetWrapperBundle.message("chooser.title.selection"))
-                .setRenderer(SimpleListCellRenderer.create("") { it.name })
+                .setRenderer(WrapWithChooserIntention.WrapperRenderer())
                 .setNamerForFiltering { it.name }
                 .setItemChosenCallback { wrap(project, editor, file, it) }
                 .createPopup()
@@ -89,6 +91,6 @@ class WrapSelectionIntention : BaseIntentionAction(), Iconable {
         return MultiWidgetSelectionDetector.analyze(file, selection.selectionStart, selection.selectionEnd)
     }
 
-    private fun listWrappers(): List<WidgetWrapper> =
-        WrapperRepository.all().filter { it.enabled && WrapperTemplateEngine.hasListSlot(it) }
+    private fun listWrappers(project: Project): List<WidgetWrapper> =
+        WrapperRepository.all(project).filter { it.enabled && WrapperTemplateEngine.hasListSlot(it) }
 }

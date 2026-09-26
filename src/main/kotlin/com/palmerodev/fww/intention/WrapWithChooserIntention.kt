@@ -68,10 +68,10 @@ class WrapWithChooserIntention : BaseIntentionAction(), Iconable {
     /** Valid wrappers at the caret; parent-specific ones (Flexible, Positioned) first. */
     internal fun choices(editor: Editor, file: PsiFile): List<WidgetWrapper> {
         val detected = WrapTargets.widgetAt(editor, file) ?: return emptyList()
-        return WrapTargets.wrappersFor(detected).sortedByDescending { it.requiresDirectParent }
+        return WrapTargets.wrappersFor(detected, file.project).sortedByDescending { it.requiresDirectParent }
     }
 
-    private class WrapperRenderer : ColoredListCellRenderer<WidgetWrapper>() {
+    internal class WrapperRenderer : ColoredListCellRenderer<WidgetWrapper>() {
         override fun customizeCellRenderer(
             list: JList<out WidgetWrapper>,
             value: WidgetWrapper?,

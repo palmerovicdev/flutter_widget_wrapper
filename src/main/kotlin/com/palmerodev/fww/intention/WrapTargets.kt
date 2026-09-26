@@ -1,6 +1,7 @@
 package com.palmerodev.fww.intention
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.palmerodev.fww.detection.FlutterContextAnalyzer
 import com.palmerodev.fww.detection.FlutterWidgetDetector
@@ -36,8 +37,8 @@ internal object WrapTargets {
     fun matches(wrapper: WidgetWrapper, detected: DetectedWidget): Boolean =
         WrapperContextMatcher.matches(wrapper, FlutterContextAnalyzer.analyze(detected))
 
-    fun wrappersFor(detected: DetectedWidget): List<WidgetWrapper> {
+    fun wrappersFor(detected: DetectedWidget, project: Project): List<WidgetWrapper> {
         val context = FlutterContextAnalyzer.analyze(detected)
-        return WrapperRepository.all().filter { WrapperContextMatcher.matches(it, context) }
+        return WrapperRepository.all(project).filter { WrapperContextMatcher.matches(it, context) }
     }
 }
