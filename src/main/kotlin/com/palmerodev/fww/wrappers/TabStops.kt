@@ -10,6 +10,9 @@ import com.palmerodev.fww.model.WidgetWrapper
  *
  * - `${widget}`                  the detected widget source (substituted by [WrapperTemplateEngine]).
  * - `${name}` / `${name:default}` an editable tab-stop; `default` is pre-filled and selected.
+ * - `${name:a|b|c}`              a tab-stop with choices: `a` is the default, all are offered
+ *                                in a completion popup. A default containing `||` (Dart "or")
+ *                                is kept as a single value.
  * - `${end}`                     the final caret position after all tab-stops.
  *
  * `widget` and `end` are reserved names; any other name is a tab-stop. Marker bodies cannot
@@ -27,7 +30,7 @@ object TabStops {
     sealed interface Token {
         data class Literal(val text: String) : Token
         data object Widget : Token
-        data class Variable(val name: String, val default: String) : Token
+        data class Variable(val name: String, val default: String, val options: List<String> = emptyList()) : Token
         data object End : Token
     }
 
@@ -69,11 +72,20 @@ object TabStops {
     private fun classify(body: String): Token = when (nameOf(body)) {
         WIDGET -> Token.Widget
         END -> Token.End
-        else -> Token.Variable(nameOf(body), defaultOf(body))
+        else -> Token.Variable(nameOf(body), defaultOf(body), optionsOf(body))
     }
 
     private fun nameOf(body: String): String = body.substringBefore(':').trim()
 
-    private fun defaultOf(body: String): String =
+    private fun rawDefaultOf(body: String): String =
         if (':' in body) body.substringAfter(':') else ""
+
+    /** The choices of `${name:a|b|c}`, or empty when the marker has a single value. */
+    fun optionsOf(body: String): List<String> {
+        val raw = rawDefaultOf(body)
+        if ('|' !in raw || "||" in raw) return emptyList()
+        return raw.split('|').map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    private fun defaultOf(body: String): String = optionsOf(body).firstOrNull() ?: rawDefaultOf(body)
 }

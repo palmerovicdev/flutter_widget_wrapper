@@ -25,6 +25,8 @@ import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.intention.WrapIntentionRegistrar
 import com.palmerodev.fww.model.WidgetWrapper
 import com.palmerodev.fww.wrappers.BuiltInWrappers
+import com.palmerodev.fww.wrappers.Presets
+import com.palmerodev.fww.wrappers.ProjectWrappers
 import com.palmerodev.fww.wrappers.TabStops
 import com.palmerodev.fww.wrappers.WrapperJsonCodec
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
@@ -100,6 +102,10 @@ class WrapperSettingsConfigurable : Configurable {
             border = JBUI.Borders.emptyTop(8)
             add(groupWrappersCheck)
             add(caretOnNameCheck)
+            add(JBLabel(FlutterWidgetWrapperBundle.message("settings.project.hint", ProjectWrappers.FILE_NAME)).apply {
+                foreground = JBColor.GRAY
+                border = JBUI.Borders.emptyTop(6)
+            })
         }
         val root = JPanel(BorderLayout()).apply {
             add(splitter, BorderLayout.CENTER)
@@ -165,6 +171,10 @@ class WrapperSettingsConfigurable : Configurable {
             addActionListener { action() }
         }
         panel.add(button("settings.button.duplicate") { onDuplicate() })
+        panel.add(javax.swing.Box.createHorizontalStrut(4))
+        panel.add(button("settings.button.presets") { onAddPresets() })
+        panel.add(javax.swing.Box.createHorizontalStrut(4))
+        panel.add(button("settings.button.reset") { onResetBuiltIns() })
         panel.add(javax.swing.Box.createHorizontalGlue())
         panel.add(button("settings.button.import") { onImport() })
         panel.add(javax.swing.Box.createHorizontalStrut(4))
@@ -376,6 +386,40 @@ class WrapperSettingsConfigurable : Configurable {
         rebuildTree(select = updated.name)
     }
 
+    private fun onAddPresets() {
+        val parent = rootPanel ?: return
+        val title = FlutterWidgetWrapperBundle.message("settings.presets.title")
+        val taken = customNames()
+        val dialog = WrapperPickerDialog(title, Presets.ALL) { false }
+        if (!dialog.showAndGet()) return
+        val chosen = dialog.selected
+        val added = chosen.filter { it.name !in taken }
+        customWrappers.addAll(added)
+        rebuildTree(select = added.firstOrNull()?.name)
+        if (added.size < chosen.size) {
+            Messages.showInfoMessage(
+                parent,
+                FlutterWidgetWrapperBundle.message("settings.presets.skipped", chosen.size - added.size),
+                title,
+            )
+        }
+    }
+
+    /** Re-enables every built-in and removes custom overrides of built-ins. */
+    private fun onResetBuiltIns() {
+        val parent = rootPanel ?: return
+        val choice = Messages.showYesNoDialog(
+            parent,
+            FlutterWidgetWrapperBundle.message("settings.reset.confirm"),
+            FlutterWidgetWrapperBundle.message("settings.button.reset"),
+            Messages.getQuestionIcon(),
+        )
+        if (choice != Messages.YES) return
+        disabledBuiltIns.clear()
+        customWrappers.removeAll { it.name in builtInNames }
+        rebuildTree()
+    }
+
     private fun onRemove() {
         val entry = selectedEntry() ?: return
         if (entry.builtIn) return
@@ -486,8 +530,11 @@ class WrapperSettingsConfigurable : Configurable {
         )
         val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, parent)
         val baseDir = LocalFileSystem.getInstance().findFileByPath(System.getProperty("user.home"))
+        val picker = WrapperPickerDialog(title, customWrappers.toList()) { true }
+        if (customWrappers.isNotEmpty() && !picker.showAndGet()) return
+        val chosen = if (customWrappers.isEmpty()) emptyList() else picker.selected
         val target = dialog.save(baseDir, "wrappers.json") ?: return
-        runCatching { target.file.writeText(WrapperJsonCodec.encodeList(customWrappers)) }
+        runCatching { target.file.writeText(WrapperJsonCodec.encodeList(chosen)) }
             .onFailure {
                 Messages.showErrorDialog(
                     parent,
@@ -518,8 +565,16 @@ class WrapperSettingsConfigurable : Configurable {
         reloadModelFromSettings()
         groupWrappersCheck.isSelected = settings.groupWrappers
         caretOnNameCheck.isSelected = settings.caretOnNameOnly
-        rebuildTree()
+        rebuildTree(select = pendingSelection)
+        pendingSelection = null
     }
+
+    /** Pre-selects [name] once the panel is built (used by the Alt+Enter "Edit" option). */
+    fun selectWrapper(name: String) {
+        if (::tree.isInitialized && rootPanel != null) selectByName(name) else pendingSelection = name
+    }
+
+    private var pendingSelection: String? = null
 
     override fun disposeUIResources() {
         rootPanel = null

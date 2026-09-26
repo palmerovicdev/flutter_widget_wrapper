@@ -1,7 +1,13 @@
 package com.palmerodev.fww.wrappers
 
+import com.intellij.codeInsight.lookup.LookupElement
+import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.codeInsight.template.Expression
+import com.intellij.codeInsight.template.ExpressionContext
+import com.intellij.codeInsight.template.Result
 import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.TemplateManager
+import com.intellij.codeInsight.template.TextResult
 import com.intellij.codeInsight.template.impl.ConstantNode
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
@@ -74,7 +80,12 @@ object LiveTemplateWrapEngine {
                 is TabStops.Token.Variable -> {
                     val id = sanitize(token.name)
                     if (declared.add(id)) {
-                        template.addVariable(id, ConstantNode(token.default), ConstantNode(token.default), true)
+                        val expression = if (token.options.size > 1) {
+                            ChoiceExpression(token.options)
+                        } else {
+                            ConstantNode(token.default)
+                        }
+                        template.addVariable(id, expression, expression, true)
                     } else {
                         template.addVariableSegment(id)
                     }
@@ -100,4 +111,12 @@ object LiveTemplateWrapEngine {
             else -> cleaned
         }
     }
+}
+
+/** A tab-stop pre-filled with the first choice that offers every choice in a lookup. */
+private class ChoiceExpression(private val options: List<String>) : Expression() {
+    override fun calculateResult(context: ExpressionContext): Result = TextResult(options.first())
+
+    override fun calculateLookupItems(context: ExpressionContext): Array<LookupElement> =
+        options.map { LookupElementBuilder.create(it) }.toTypedArray()
 }

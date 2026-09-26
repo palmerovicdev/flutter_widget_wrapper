@@ -5,6 +5,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.palmerodev.fww.model.ChildKind
 import com.palmerodev.fww.model.WidgetWrapper
 
 object WrapperJsonCodec {
@@ -48,6 +49,10 @@ object WrapperJsonCodec {
         }
         if (w.requiresDirectParent) obj.addProperty("requiresDirectParent", true)
         w.warning?.let { obj.addProperty("warning", it) }
+        if (w.allowedSlots.isNotEmpty()) {
+            obj.add("allowedSlots", JsonArray().also { arr -> w.allowedSlots.forEach { arr.add(it) } })
+        }
+        if (w.childKind != ChildKind.ANY) obj.addProperty("childKind", w.childKind)
         return obj
     }
 
@@ -64,6 +69,8 @@ object WrapperJsonCodec {
             disallowedParents = obj.stringArrayOr("disallowedParents", emptyList()),
             requiresDirectParent = obj.booleanOr("requiresDirectParent", false),
             warning = obj.stringOrNull("warning"),
+            allowedSlots = obj.stringArrayOr("allowedSlots", emptyList()),
+            childKind = obj.stringOrNull("childKind")?.takeIf { it in ChildKind.ALL } ?: ChildKind.ANY,
         )
     }
 

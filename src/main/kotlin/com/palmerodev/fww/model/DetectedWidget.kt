@@ -8,4 +8,6 @@ data class DetectedWidget(
     val text: String,
     val parentWidgetName: String?,
     val ancestors: List<String>,
+    /** Named argument holding the widget, e.g. `child`, `children`, `slivers`; null if unknown. */
+    val slot: String? = null,
 )

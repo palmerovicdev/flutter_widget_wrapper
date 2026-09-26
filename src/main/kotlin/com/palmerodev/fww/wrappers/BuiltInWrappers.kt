@@ -1,5 +1,6 @@
 package com.palmerodev.fww.wrappers
 
+import com.palmerodev.fww.model.ChildKind
 import com.palmerodev.fww.model.WidgetWrapper
 
 object BuiltInWrappers {
@@ -10,7 +11,7 @@ object BuiltInWrappers {
             template = listOf(
                 "AnimatedSize(",
                 $$"  duration: const Duration(milliseconds: ${ms:300}),",
-                $$"  curve: ${curve:Curves.easeInOut},",
+                $$"  curve: ${curve:Curves.easeInOut|Curves.linear|Curves.easeIn|Curves.easeOut|Curves.fastOutSlowIn},",
                 $$"  child: ${widget},",
                 ")",
             ),
@@ -44,12 +45,24 @@ object BuiltInWrappers {
             name = "Align",
             template = listOf(
                 "Align(",
-                $$"  alignment: ${alignment:Alignment.center},",
+                $$"  alignment: ${alignment:Alignment.center|Alignment.topLeft|Alignment.topCenter|Alignment.topRight|Alignment.centerLeft|Alignment.centerRight|Alignment.bottomLeft|Alignment.bottomCenter|Alignment.bottomRight},",
                 $$"  child: ${widget},",
                 ")",
             ),
             description = "Wraps with Align",
             category = "Layout",
+        ),
+        WidgetWrapper(
+            name = "Expanded",
+            template = listOf(
+                "Expanded(",
+                $$"  child: ${widget},",
+                ")",
+            ),
+            description = "Wraps with Expanded",
+            category = "Layout",
+            allowedParents = listOf("Row", "Column", "Flex"),
+            requiresDirectParent = true,
         ),
         WidgetWrapper(
             name = "Flexible",
@@ -119,6 +132,31 @@ object BuiltInWrappers {
             ),
             description = "Wraps with SafeArea",
             category = "Layout",
+        ),
+        WidgetWrapper(
+            name = "SliverToBoxAdapter",
+            template = listOf(
+                "SliverToBoxAdapter(",
+                $$"  child: ${widget},",
+                ")",
+            ),
+            description = "Puts a box widget into a sliver list",
+            category = "Slivers",
+            allowedSlots = listOf("sliver", "slivers"),
+            childKind = ChildKind.BOX,
+        ),
+        WidgetWrapper(
+            name = "SliverPadding",
+            template = listOf(
+                "SliverPadding(",
+                $$"  padding: const EdgeInsets.all(${padding:8}),",
+                $$"  sliver: ${widget},",
+                ")",
+            ),
+            description = "Wraps a sliver with SliverPadding",
+            category = "Slivers",
+            allowedSlots = listOf("sliver", "slivers"),
+            childKind = ChildKind.SLIVER,
         ),
     )
 }

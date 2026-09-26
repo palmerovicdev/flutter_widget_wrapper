@@ -17,6 +17,7 @@ import com.palmerodev.fww.detection.MultiWidgetSelectionDetector
 import com.palmerodev.fww.intention.WrapApplier
 import com.palmerodev.fww.intention.WrapTargets
 import com.palmerodev.fww.model.WidgetWrapper
+import com.palmerodev.fww.wrappers.ProjectWrappers
 import com.palmerodev.fww.wrappers.WrapperRepository
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
 
@@ -33,7 +34,11 @@ class WidgetSurroundDescriptor : SurroundDescriptor {
     }
 
     override fun getSurrounders(): Array<Surrounder> =
-        WrapperRepository.all().filter { it.enabled }.map(::WrapperSurrounder).toTypedArray()
+        // No project here: offer every known name; isApplicable resolves it for the file.
+        (WrapperRepository.all() + ProjectWrappers.fromOpenProjects())
+            .distinctBy { it.name }
+            .map { WrapperSurrounder(it.name) }
+            .toTypedArray()
 
     override fun isExclusive(): Boolean = false
 
@@ -62,11 +67,15 @@ class WidgetSurroundDescriptor : SurroundDescriptor {
         return selected.takeIf { it.size >= 2 }?.toTypedArray()
     }
 
-    private class WrapperSurrounder(private val wrapper: WidgetWrapper) : Surrounder {
+    private class WrapperSurrounder(private val name: String) : Surrounder {
 
-        override fun getTemplateDescription(): String = wrapper.name
+        override fun getTemplateDescription(): String = name
+
+        private fun resolve(elements: Array<out PsiElement>): WidgetWrapper? =
+            elements.firstOrNull()?.let { WrapperRepository.byName(name, it.project) }?.takeIf { it.enabled }
 
         override fun isApplicable(elements: Array<out PsiElement>): Boolean {
+            val wrapper = resolve(elements) ?: return false
             if (elements.size > 1) return WrapperTemplateEngine.hasListSlot(wrapper)
             val element = elements.singleOrNull() ?: return false
             val detected = FlutterWidgetDetector.detect(element.containingFile, element.textRange.startOffset)
@@ -75,6 +84,7 @@ class WidgetSurroundDescriptor : SurroundDescriptor {
         }
 
         override fun surroundElements(project: Project, editor: Editor, elements: Array<out PsiElement>): TextRange? {
+            val wrapper = resolve(elements) ?: return null
             val file = elements.first().containingFile
             val range = TextRange(elements.first().textRange.startOffset, elements.last().textRange.endOffset)
             val widgetText = WrapApplier.joinSiblings(elements.map { it.text })

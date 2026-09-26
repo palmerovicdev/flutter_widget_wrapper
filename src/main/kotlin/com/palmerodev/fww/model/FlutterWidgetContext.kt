@@ -6,4 +6,5 @@ data class FlutterWidgetContext(
     val ancestors: List<String>,
     val isDirectChildOfFlex: Boolean,
     val isInsideStack: Boolean,
+    val slot: String? = null,
 )

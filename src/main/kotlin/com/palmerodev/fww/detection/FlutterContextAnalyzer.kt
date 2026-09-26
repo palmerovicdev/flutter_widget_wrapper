@@ -14,6 +14,7 @@ object FlutterContextAnalyzer {
             ancestors = detected.ancestors,
             isDirectChildOfFlex = detected.parentWidgetName in FLEX_PARENTS,
             isInsideStack = "Stack" in detected.ancestors,
+            slot = detected.slot,
         )
     }
 }

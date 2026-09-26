@@ -6,6 +6,7 @@ import com.intellij.psi.PsiFile
 import com.jetbrains.lang.dart.psi.DartCallExpression
 import com.jetbrains.lang.dart.psi.DartConstObjectExpression
 import com.jetbrains.lang.dart.psi.DartFile
+import com.jetbrains.lang.dart.psi.DartNamedArgument
 import com.jetbrains.lang.dart.psi.DartNewExpression
 import com.palmerodev.fww.model.DetectedWidget
 
@@ -35,7 +36,18 @@ internal object PsiFlutterWidgetDetector {
             text = hit.text,
             parentWidgetName = ancestors.firstOrNull(),
             ancestors = ancestors,
+            slot = slotOf(hit),
         )
+    }
+
+    /** The named argument (`child:`, `slivers:`) between [widget] and its parent widget. */
+    private fun slotOf(widget: PsiElement): String? {
+        var current = widget.parent
+        while (current != null && current !is DartFile && !isWidgetExpression(current)) {
+            if (current is DartNamedArgument) return current.parameterReferenceExpression?.text?.trim()
+            current = current.parent
+        }
+        return null
     }
 
     fun isWidgetExpression(element: PsiElement): Boolean =
