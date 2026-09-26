@@ -12,16 +12,21 @@
         Add context-aware Flutter widget wrappers to the Alt+Enter intention menu. Wrap widgets
         without manually moving code, fixing indentation, or rebuilding constructors.
 
-        Includes built-in wrappers such as Align, AnimatedSize, Flexible,
-        GestureDetector, InkWell, Opacity, Positioned, SafeArea, SingleChildScrollView, and Stack. Wrappers
-        are shown only where they are valid; for example, Flexible is offered only
-        for direct children of Row, Column, or Flex, and Positioned only for direct
-        children of Stack. You can also wrap several sibling
-        widgets in a Flex children list with a Stack.
+        Includes built-in wrappers such as Align, AnimatedSize, Expanded, Flexible,
+        GestureDetector, InkWell, Opacity, Positioned, SafeArea, SingleChildScrollView,
+        SliverToBoxAdapter and Stack, plus optional presets (Consumer, BlocBuilder, Hero, …).
+        Wrappers are shown only where they are valid; for example, Expanded and Flexible are
+        offered only for direct children of Row, Column, or Flex, Positioned only for direct
+        children of Stack, and inside slivers only sliver-aware wrappers.
 
-        Enable or disable built-in wrappers, create custom wrappers with validation and preview,
-        and import or export wrapper definitions as JSON. You can also turn an existing Flutter
-        widget into a reusable custom wrapper.
+        Wrap from Alt+Enter, Surround With, postfix templates (Text('a').opacity) or a single
+        searchable "Wrap with…" popup; wrap several selected siblings at once; replace one
+        wrapper with another while keeping its child. Tab-stops (with choices) let you edit
+        values right after wrapping, and every wrapper has a preview.
+
+        Create custom wrappers with a Dart editor, live preview and validation, import or
+        export them as JSON, share them with your team through a .flutter-wrappers.json file
+        in the project, or turn an existing widget into a reusable wrapper.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -40,8 +45,16 @@
         <lang.surroundDescriptor
             language="Dart"
             implementationClass="com.palmerodev.fww.surround.WidgetSurroundDescriptor"/>
+        <codeInsight.template.postfixTemplateProvider
+            language="Dart"
+            implementationClass="com.palmerodev.fww.postfix.WrapperPostfixTemplateProvider"/>
         <notificationGroup id="Flutter Widget Wrapper" displayType="BALLOON"
                            key="notification.group" bundle="messages.FlutterWidgetWrapperBundle"/>
     </extensions>
+
+    <applicationListeners>
+        <listener class="com.palmerodev.fww.intention.ProjectWrappersListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </applicationListeners>
 
 </idea-plugin>

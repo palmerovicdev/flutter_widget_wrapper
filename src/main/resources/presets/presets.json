@@ -1,0 +1,272 @@
+[
+  {
+    "name": "Consumer",
+    "description": "Riverpod Consumer",
+    "category": "State",
+    "template": [
+      "Consumer(",
+      "  builder: (context, ref, child) {",
+      "    ${end}",
+      "    return ${widget};",
+      "  },",
+      ")"
+    ]
+  },
+  {
+    "name": "BlocBuilder",
+    "description": "flutter_bloc BlocBuilder",
+    "category": "State",
+    "template": [
+      "BlocBuilder<${bloc:MyBloc}, ${state:MyState}>(",
+      "  builder: (context, state) {",
+      "    ${end}",
+      "    return ${widget};",
+      "  },",
+      ")"
+    ]
+  },
+  {
+    "name": "ValueListenableBuilder",
+    "description": "Rebuilds when a ValueListenable changes",
+    "category": "State",
+    "template": [
+      "ValueListenableBuilder<${type:int}>(",
+      "  valueListenable: ${listenable:notifier},",
+      "  builder: (context, value, child) => ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "AnimatedBuilder",
+    "description": "Rebuilds on every animation tick",
+    "category": "State",
+    "template": [
+      "AnimatedBuilder(",
+      "  animation: ${animation:controller},",
+      "  builder: (context, child) => ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "ListenableBuilder",
+    "description": "Rebuilds when a Listenable notifies",
+    "category": "State",
+    "template": [
+      "ListenableBuilder(",
+      "  listenable: ${listenable:notifier},",
+      "  builder: (context, child) => ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Hero",
+    "description": "Shared-element transition",
+    "category": "Animation",
+    "template": [
+      "Hero(",
+      "  tag: ${tag:'hero'},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "AnimatedOpacity",
+    "description": "Animated fade",
+    "category": "Animation",
+    "template": [
+      "AnimatedOpacity(",
+      "  opacity: ${opacity:1.0},",
+      "  duration: const Duration(milliseconds: ${ms:300}),",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "AnimatedSwitcher",
+    "description": "Cross-fades when the child changes",
+    "category": "Animation",
+    "template": [
+      "AnimatedSwitcher(",
+      "  duration: const Duration(milliseconds: ${ms:300}),",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Visibility",
+    "description": "Shows or hides the child",
+    "category": "Visual",
+    "template": [
+      "Visibility(",
+      "  visible: ${visible:true},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "ClipRRect",
+    "description": "Rounded clipping",
+    "category": "Visual",
+    "template": [
+      "ClipRRect(",
+      "  borderRadius: BorderRadius.circular(${radius:8}),",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Transform.rotate",
+    "description": "Rotates the child",
+    "category": "Visual",
+    "template": [
+      "Transform.rotate(",
+      "  angle: ${angle:0.0},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Transform.scale",
+    "description": "Scales the child",
+    "category": "Visual",
+    "template": [
+      "Transform.scale(",
+      "  scale: ${scale:1.0},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "RepaintBoundary",
+    "description": "Isolates repaints of the child",
+    "category": "Visual",
+    "template": [
+      "RepaintBoundary(",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "IgnorePointer",
+    "description": "Child ignores pointer events",
+    "category": "Interaction",
+    "template": [
+      "IgnorePointer(",
+      "  ignoring: ${ignoring:true},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "AbsorbPointer",
+    "description": "Child absorbs pointer events",
+    "category": "Interaction",
+    "template": [
+      "AbsorbPointer(",
+      "  absorbing: ${absorbing:true},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Tooltip",
+    "description": "Shows a tooltip on long press or hover",
+    "category": "Interaction",
+    "template": [
+      "Tooltip(",
+      "  message: ${message:'Tooltip'},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Dismissible",
+    "description": "Swipe to dismiss",
+    "category": "Interaction",
+    "template": [
+      "Dismissible(",
+      "  key: ${key:ValueKey(item)},",
+      "  onDismissed: (direction) {${end}},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Semantics",
+    "description": "Adds a semantic label",
+    "category": "Accessibility",
+    "template": [
+      "Semantics(",
+      "  label: ${label:'Label'},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "AspectRatio",
+    "description": "Sizes the child to an aspect ratio",
+    "category": "Layout",
+    "template": [
+      "AspectRatio(",
+      "  aspectRatio: ${ratio:16 / 9},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "FittedBox",
+    "description": "Scales the child to fit",
+    "category": "Layout",
+    "template": [
+      "FittedBox(",
+      "  fit: ${fit:BoxFit.contain|BoxFit.cover|BoxFit.fill|BoxFit.fitWidth|BoxFit.fitHeight|BoxFit.scaleDown},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "ConstrainedBox",
+    "description": "Adds size constraints",
+    "category": "Layout",
+    "template": [
+      "ConstrainedBox(",
+      "  constraints: const BoxConstraints(maxWidth: ${maxWidth:400}),",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "LayoutBuilder",
+    "description": "Builds from the parent's constraints",
+    "category": "Layout",
+    "template": [
+      "LayoutBuilder(",
+      "  builder: (context, constraints) {",
+      "    ${end}",
+      "    return ${widget};",
+      "  },",
+      ")"
+    ]
+  },
+  {
+    "name": "Material",
+    "description": "Material ancestor (ink, elevation)",
+    "category": "Visual",
+    "template": [
+      "Material(",
+      "  color: ${color:Colors.transparent},",
+      "  child: ${widget},",
+      ")"
+    ]
+  },
+  {
+    "name": "Card",
+    "description": "Material card",
+    "category": "Visual",
+    "template": [
+      "Card(",
+      "  child: ${widget},",
+      ")"
+    ]
+  }
+]

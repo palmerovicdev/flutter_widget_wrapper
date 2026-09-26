@@ -1,7 +1,7 @@
 # Roadmap — Flutter Widget Wrapper
 
-Revisión de UX, UI y funcionalidades (2026-09-25). Todo son propuestas; nada está
-implementado todavía salvo que se indique.
+Revisión de UX, UI y funcionalidades (2026-09-25). Todo lo listado está implementado en
+1.3–1.5 salvo lo que se indica como descartado en el plan de versiones.
 
 ## 1. Fallos visibles (prioridad alta)
 
@@ -104,11 +104,18 @@ implementado todavía salvo que se indique.
   Queda fuera: submenú por wrapper (Editar/Ocultar), "Reset built-ins", export selectivo,
   chips para padres, validación sintáctica con PSI y el estado compartido
   `cachedText`/`cachedCount` (solo afecta al texto mostrado; migrar a `ModCommandAction`).
-- **1.5:** wrappers de proyecto, cambiar wrapper, tab-stops con opciones, reglas por slot y
-  catálogo de presets.
+- **1.5 (implementada, sin publicar):** todo lo pendiente — cambiar wrapper ("Replace X
+  with…"), wrappers de proyecto (`.flutter-wrappers.json`), tab-stops con opciones, reglas
+  por slot (+ `SliverToBoxAdapter`/`SliverPadding`), `Expanded`, 24 presets, postfix
+  templates, submenú Editar/Ocultar, "Reset built-ins", export selectivo, autocompletado
+  de padres, validación ampliada (marcadores, paréntesis, parseo Dart) y etiquetas por
+  hilo en lugar de estado compartido.
+  Descartado/pendiente: "Deshacer" en la notificación de "Create wrapper" (hay "Open
+  settings") y chips visuales para padres (hay autocompletado).
 
 ## Notas de entorno
 
 - Probar con la IDE instalada (`/Applications/IntelliJ IDEA.app`, 2026.2.2) o las ya cacheadas
   en Gradle (2026.1.5, 262.10315.125); no descargar IDEs nuevas.
-- Pendiente: tarea `runIdeLocal` en `build.gradle.kts` que use la IDE instalada.
+- Hecho: `-PlocalIdePath=/Applications/IntelliJ IDEA.app` compila y testea contra la IDE
+  instalada (ver `CLAUDE.md`). Antes de publicar, verificar contra 2026.1.5 (mínimo).

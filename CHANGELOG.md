@@ -7,6 +7,29 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Replace _Widget_ with…**: with the caret on a wrapper's name (e.g. `Flexible`), swap
+  it for another wrapper while keeping its `child:` (or the elements of `children:`).
+- Team wrappers: a `.flutter-wrappers.json` file in the project root (same format as
+  Export) adds wrappers for that project and overrides personal/built-in ones with the
+  same name. Changes to the file are picked up automatically.
+- Postfix templates for every wrapper: `Text('a').opacity` + Tab.
+- Tab-stops with choices: `${name:a|b|c}` pre-fills `a` and offers every choice in a
+  popup. Align (alignments) and AnimatedSize (curves) use it.
+- Slot rules: wrappers can declare `allowedSlots` (e.g. `slivers`) and `childKind`
+  (`box`/`sliver`). Inside `sliver:`/`slivers:` only sliver-aware wrappers are offered.
+  New built-ins `SliverToBoxAdapter` and `SliverPadding`.
+- `Expanded` is back as a built-in (direct children of Row/Column/Flex only), now that
+  detection uses the Dart PSI.
+- 24 optional presets (Settings › **Add Presets…**): Consumer, BlocBuilder,
+  ValueListenableBuilder, AnimatedBuilder, Hero, Visibility, ClipRRect, Tooltip,
+  Semantics, Dismissible, AspectRatio, FittedBox, LayoutBuilder and more.
+- `Alt+Enter` submenu (right arrow) on each wrapper: **Edit** (opens it in Settings, or
+  the project file) and **Hide**.
+- Settings: **Reset Built-ins**, export only the wrappers you pick, completion of widget
+  names in the parent fields, and fields for slots and child kind.
+- The wrapper editor rejects unclosed `${` markers, defaults on the reserved `widget`/`end`
+  markers and unbalanced brackets, and warns when the preview is not valid Dart.
+
 - Surround With (`Ctrl+Alt+T` / `⌥⌘T`) for Flutter widgets: select a widget, or several
   siblings of a Row/Column/Flex `children:` list, and pick a wrapper.
 - Wrapping several selected siblings works with any wrapper whose `${widget}` sits in a
@@ -45,6 +68,11 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Inside `sliver:`/`slivers:`, box wrappers (SafeArea, Opacity, …) are no longer offered.
+- Wrap intentions always run in their own command, so a project wrapper that overrides a
+  built-in with a different kind of template (with or without tab-stops) works.
+- Intention labels that depend on the caret ("Wrap 3 widgets with…", "Create wrapper
+  from Card") are kept per thread, so two editors no longer overwrite each other's label.
 - Faster `Alt+Enter`: the merged wrapper list is cached per settings state, and the
   widget under the caret is detected once per caret position instead of once per wrapper.
 - Intention names, dialog titles and import/export messages moved to the message bundle.

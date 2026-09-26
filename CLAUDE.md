@@ -22,6 +22,10 @@ Everything goes through the Gradle Wrapper (`./gradlew`):
 - `./gradlew runIde` — launch a sandbox IDE with the plugin installed (sandbox lives under `.intellijPlatform/sandbox/`)
 - `./gradlew buildPlugin` — build distributable ZIP into `build/distributions/`
 - `./gradlew verifyPlugin` — run the JetBrains Plugin Verifier
+- Add `"-PlocalIdePath=/Applications/IntelliJ IDEA.app"` (or set `localIdePath` in
+  `~/.gradle/gradle.properties`) to build/test against the installed IDE instead of
+  downloading 2026.1.5; bytecode instrumentation is skipped in that mode. Do not trigger
+  IDE downloads just to test.
 
 The user typically runs and debugs from IntelliJ IDEA Ultimate using the `.run/`
 configurations (Run Tests, Run Plugin, Run Verifications) rather than the CLI.
@@ -74,7 +78,14 @@ re-called after the user adds a custom wrapper in settings.
 - `WidgetWrapper` (in `model/`) is the definition: `name`, `template` (list of lines),
   `category`, `enabled`, parent rules, optional `warning`.
 - `BuiltInWrappers.ALL` holds the shipped wrappers (Align, AnimatedSize, Expanded,
-  Flexible, GestureDetector, InkWell, Opacity, Positioned, SafeArea, SingleChildScrollView, Stack).
+  Flexible, GestureDetector, InkWell, Opacity, Positioned, SafeArea, SingleChildScrollView,
+  SliverPadding, SliverToBoxAdapter, Stack). `Presets.ALL` (`resources/presets/presets.json`)
+  holds optional ones the user can add from Settings.
+- Rules beyond parents: `allowedSlots` (named argument such as `slivers`, detected by
+  `PsiFlutterWidgetDetector.slotOf`) and `childKind` (`box`/`sliver`, by `Sliver…` name).
+- Project wrappers: `ProjectWrappers` reads `<project root>/.flutter-wrappers.json`;
+  `WrapperRepository.all(project)` / `byName(name, project)` merge built-in < personal <
+  project. `ProjectWrappersListener` re-syncs registrations when the file changes.
 - Custom wrappers are stored as a JSON string in application settings and parsed by
   `WrapperJsonCodec` (Gson). `WrapperValidator` requires a non-blank name, a non-empty
   template, and the literal `${widget}` placeholder.
@@ -90,6 +101,21 @@ re-called after the user adds a custom wrapper in settings.
 Swing UI (master–detail category tree + template/preview). Always fetch the service via
 `getInstance()` / `getInstanceOrNull()` — the latter returns null when the service isn't
 yet created (used during startup registration).
+
+### Applying a wrapper and entry points
+
+`WrapApplier` is the single place that plans and applies a wrap (base indent, tab-stop
+defaults, `const` removal via `ConstContext`, live template vs. direct edit, warning
+hint). Everything funnels through it: `WrapWithWidgetIntention` (always
+`startInWriteAction() = false`; it opens its own command), `WrapWithChooserIntention`
+("Wrap with…" popup when `groupWrappers` is on), `WrapSelectionIntention`,
+`ReplaceWrapperIntention`, `WidgetSurroundDescriptor` (Surround With) and
+`WrapperPostfixTemplateProvider`. `WrapTargets` answers "which widget / which wrappers at
+the caret" and honors the `caretOnNameOnly` setting.
+
+Tab-stop markers are parsed by `TabStops` (`${name:a|b}` = choices, rendered with a
+lookup `Expression` in `LiveTemplateWrapEngine`); `TemplateLint` does structural checks
+for the wrapper form.
 
 ### The two secondary intentions
 

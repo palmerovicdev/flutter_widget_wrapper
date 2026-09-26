@@ -11,18 +11,28 @@ manually moving code, fixing indentation, or rebuilding its constructor.
 ## Features
 
 - Wrap Flutter widgets directly from the `Alt+Enter` menu.
-- Includes `Align`, `AnimatedSize`, `Flexible`, `GestureDetector`, `InkWell`,
-  `Opacity`, `Positioned`, `SafeArea`, `SingleChildScrollView`, and `Stack`.
+- Includes `Align`, `AnimatedSize`, `Expanded`, `Flexible`, `GestureDetector`,
+  `InkWell`, `Opacity`, `Positioned`, `SafeArea`, `SingleChildScrollView`,
+  `SliverPadding`, `SliverToBoxAdapter`, and `Stack`, plus 24 optional presets
+  (Consumer, BlocBuilder, ValueListenableBuilder, Hero, Visibility, ClipRRect, …).
 - Shows context-sensitive wrappers only where they are valid. For example,
-  `Flexible` is offered only for direct children of `Row`, `Column`, or `Flex`,
-  and `Positioned` only for direct children of `Stack`.
+  `Expanded`/`Flexible` are offered only for direct children of `Row`, `Column`, or
+  `Flex`, `Positioned` only for direct children of `Stack`, and inside
+  `slivers:` only sliver-aware wrappers such as `SliverToBoxAdapter`.
 - After wrapping, live-template tab-stops jump the caret to editable fields
-  (`opacity`, `alignment`, …) so you can tweak values with Tab.
-- Wrap several sibling widgets in a `Row`/`Column`/`Flex` `children:` list with a
-  single `Stack` via `Alt+Enter`.
+  (`opacity`, `alignment`, …); fields with choices open a completion popup.
+- Keeps `const` code compiling: wrapping with a closure (e.g. `GestureDetector`)
+  removes the enclosing `const`.
+- Several entry points: `Alt+Enter`, Surround With (`Ctrl+Alt+T` / `⌥⌘T`), postfix
+  templates (`Text('a').opacity` + Tab), and an optional single **Wrap with…** popup.
+- Wraps several selected siblings of a `Row`/`Column`/`Flex` `children:` list with
+  any list wrapper (`Stack`, or custom ones such as `Wrap`).
+- **Replace _Widget_ with…** swaps a wrapper for another one while keeping its child
+  (e.g. `Flexible` → `Expanded`).
+- `Alt+Enter` preview for every wrapper, and a submenu (right arrow) to edit or hide it.
 - Preserves indentation and reformats the generated Dart code.
-- Lets you enable or disable built-in wrappers.
-- Supports custom wrappers with validation, preview, and JSON import/export.
+- Custom wrappers with a Dart editor, live preview, validation and JSON import/export;
+  team wrappers shared through a `.flutter-wrappers.json` file in the project.
 - Creates a reusable custom wrapper from an existing Flutter widget.
 
 ## Usage
@@ -30,6 +40,17 @@ manually moving code, fixing indentation, or rebuilding its constructor.
 1. Place the caret inside a Flutter widget in a `.dart` file.
 2. Press `Alt+Enter` (`Option+Enter` on macOS).
 3. Select **Wrap with _WidgetName_**.
+
+Other ways to wrap:
+
+- **Surround With** (`Ctrl+Alt+T` / `⌥⌘T`): select a widget, or several siblings of a
+  `children:` list, and pick a wrapper.
+- **Postfix templates**: type `.` plus the lower-cased wrapper name after a widget and
+  press Tab, e.g. `Text('Hi').safearea`.
+- **Replace**: with the caret on a widget name such as `Flexible`, choose
+  **Replace Flexible with…** to swap it for another wrapper, keeping its child.
+- In Settings you can group all wrappers under one **Wrap with…** entry, and offer them
+  only when the caret is on the widget's constructor name.
 
 The plugin replaces the selected widget with the chosen wrapper and runs the
 IDE formatter on the resulting code. If the template defines tab-stops, the
@@ -52,9 +73,13 @@ at `${end}` when present.
 
 Open **Settings/Preferences | Tools | Flutter Widget Wrapper** to:
 
-- choose which built-in wrappers appear in the intention menu;
+- choose which built-in wrappers appear in the intention menu, customize a built-in
+  (saving an override with the same name) or reset them all;
 - add, edit, duplicate, preview, or delete custom wrappers;
-- import or export custom wrapper definitions as JSON.
+- add optional presets (**Add Presets…**);
+- import or export custom wrapper definitions as JSON (export lets you pick which);
+- group wrappers under a single **Wrap with…** entry and restrict them to the
+  constructor name.
 
 Hover the **?** icon next to **Template** for an in-IDE summary of the template
 syntax described below.
@@ -80,6 +105,7 @@ string in JSON). Markers use the `${...}` family:
 | `${widget}` | **Required.** Replaced with the widget under the caret (source text, indentation preserved). |
 | `${name:default}` | Editable tab-stop after wrapping. Pre-filled with `default` and selected. Example: `${opacity:0.5}`. |
 | `${name}` | Editable tab-stop with an empty default. |
+| `${name:a\|b\|c}` | Tab-stop with choices: `a` is the default and all are offered in a popup. Example: `${curve:Curves.easeIn\|Curves.linear}`. A default containing `\|\|` stays a single value. |
 | `${end}` | Final caret position after you Tab through all other stops. |
 
 Reserved names: `widget` and `end`. Any other `name` becomes a tab-stop.
@@ -135,6 +161,8 @@ These fields control *when* the “Wrap with …” intention appears:
 | `allowedParents` | Comma-separated parent widget names. Use `any` (default) for no restriction. |
 | `disallowedParents` | Hide the wrapper when any of these parents appear in the ancestor chain. |
 | `requiresDirectParent` | If true, the widget’s *immediate* parent must be one of `allowedParents` (e.g. `Flexible` under `Row`/`Column`/`Flex`). |
+| `allowedSlots` | Named arguments the widget must sit in (e.g. `["slivers", "sliver"]`). Wrappers without slots are hidden inside `sliver`/`slivers`. |
+| `childKind` | `any` (default), `box` or `sliver`: what the wrapped widget must be (a sliver is any widget named `Sliver…`). |
 
 ## Custom wrapper JSON
 
@@ -190,8 +218,17 @@ Example with tab-stops and parent rules:
 ```
 
 Optional fields: `enabled`, `allowedParents`, `disallowedParents`,
-`requiresDirectParent`, `warning`, `description`, `category`.
+`requiresDirectParent`, `allowedSlots`, `childKind`, `warning`, `description`,
+`category`.
 Templates may be a string or an array of lines.
+
+### Team wrappers (project file)
+
+Commit a `.flutter-wrappers.json` file (same format as above, e.g. produced by
+**Export JSON…**) to the project root. Everyone who opens the project gets those
+wrappers; they override built-in and personal wrappers with the same name, for that
+project only. Changes to the file are picked up automatically. In `Alt+Enter`, the
+**Edit** option of a project wrapper opens the file.
 
 ### Create wrapper from an existing widget
 

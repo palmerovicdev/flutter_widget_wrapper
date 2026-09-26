@@ -1,7 +1,6 @@
 package com.palmerodev.fww
 
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.palmerodev.fww.intention.WrapIntentionRegistrar
 import com.palmerodev.fww.intention.WrapWithWidgetIntention
@@ -24,7 +23,7 @@ class WrapWithLiveTemplateTest : BasePlatformTestCase() {
 
         val intention = WrapWithWidgetIntention("Opacity")
         assertTrue("Opacity should be available on a top-level Text", intention.isAvailable(project, myFixture.editor, myFixture.file))
-        assertFalse("Marker wrappers must not start in a write action", intention.startInWriteAction())
+        assertFalse("Wrap intentions open their own command", intention.startInWriteAction())
         intention.invoke(project, myFixture.editor, myFixture.file)
 
         val result = myFixture.editor.document.text
@@ -41,10 +40,8 @@ class WrapWithLiveTemplateTest : BasePlatformTestCase() {
 
         val intention = WrapWithWidgetIntention("SafeArea")
         assertTrue("SafeArea should be available", intention.isAvailable(project, myFixture.editor, myFixture.file))
-        assertTrue("Markerless wrappers keep the direct-edit write action", intention.startInWriteAction())
-        WriteCommandAction.runWriteCommandAction(project) {
-            intention.invoke(project, myFixture.editor, myFixture.file)
-        }
+        assertFalse("Wrap intentions open their own command", intention.startInWriteAction())
+        intention.invoke(project, myFixture.editor, myFixture.file)
         val result = myFixture.editor.document.text
         assertTrue("Expected SafeArea wrapper. Got:\n$result", result.contains("SafeArea("))
         assertTrue("Expected the child preserved. Got:\n$result", result.contains("child: Text('hi')"))
