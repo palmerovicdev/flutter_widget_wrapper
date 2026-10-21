@@ -3,6 +3,7 @@ package com.palmerodev.fww.intention
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -12,8 +13,11 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.detection.ConstContext
 import com.palmerodev.fww.model.WidgetWrapper
+import com.palmerodev.fww.settings.FlutterWrapperSettings
+import com.palmerodev.fww.wrappers.DartImports
 import com.palmerodev.fww.wrappers.LiveTemplateWrapEngine
 import com.palmerodev.fww.wrappers.TabStops
+import com.palmerodev.fww.wrappers.WrapperImports
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
 
 /**
@@ -32,6 +36,10 @@ internal object WrapApplier {
         /** The wrapper applied to [widgetText] with every tab-stop at its default value. */
         val rendered: String,
         val constKeywords: List<TextRange>,
+        /** Imports the wrapper needs that the file lacks, added in the same command. */
+        val imports: List<String> = emptyList(),
+        /** Packages of [imports] missing from `pubspec.yaml`, reported after the wrap. */
+        val undeclaredPackages: List<String> = emptyList(),
     )
 
     /**
@@ -61,7 +69,14 @@ internal object WrapApplier {
             } else {
                 emptyList()
             }
-        return Plan(wrapper, range, widgetText, baseIndent, rendered, constKeywords)
+        val dependencies = WrapperImports.dependencies(file)
+        val imports = if (FlutterWrapperSettings.getInstance().autoImport) {
+            WrapperImports.missing(wrapper, document.text, dependencies)
+        } else {
+            emptyList()
+        }
+        val undeclared = WrapperImports.undeclaredPackages(imports, dependencies)
+        return Plan(wrapper, range, widgetText, baseIndent, rendered, constKeywords, imports, undeclared)
     }
 
     /** True when [apply] must run outside a write action (it starts a live template). */
@@ -76,11 +91,11 @@ internal object WrapApplier {
             LiveTemplateWrapEngine.startWrap(
                 project, editor, plan.wrapper, plan.widgetText, plan.baseIndent,
                 plan.range.startOffset, plan.range.endOffset, plan.constKeywords,
-            )
+            ) { addImports(project, editor.document, plan.imports) }
         } else {
             replaceWithDefaults(project, editor, file, plan)
         }
-        showWarning(editor, plan.wrapper)
+        showWarning(editor, plan)
     }
 
     /** [apply] for callers outside a write action (popups, choosers). */
@@ -91,7 +106,7 @@ internal object WrapApplier {
         }
         val name = FlutterWidgetWrapperBundle.message("intention.text.wrap", plan.wrapper.name)
         WriteCommandAction.runWriteCommandAction(project, name, null, { replaceWithDefaults(project, editor, file, plan) }, file)
-        showWarning(editor, plan.wrapper)
+        showWarning(editor, plan)
     }
 
     /** Replaces the range with [Plan.rendered] and reformats; also used for previews. */
@@ -103,12 +118,32 @@ internal object WrapApplier {
         val start = plan.range.startOffset - ConstContext.removeKeywords(document, plan.constKeywords)
         PsiDocumentManager.getInstance(project).commitDocument(document)
         CodeStyleManager.getInstance(project).reformatRange(file, start, start + replacement.length)
+        // The imports sit above the wrapped range, so they go in once its offsets are used.
+        addImports(project, document, plan.imports)
     }
 
-    private fun showWarning(editor: Editor, wrapper: WidgetWrapper) {
-        val warning = wrapper.warning?.takeIf { it.isNotBlank() } ?: return
+    /** Inserts each import the document still lacks, in its place among the directives. */
+    private fun addImports(project: Project, document: Document, imports: List<String>) {
+        if (imports.isEmpty()) return
+        for (uri in imports) {
+            val text = document.text
+            if (WrapperImports.covered(uri, DartImports.importedUris(text))) continue
+            val insertion = DartImports.insertion(text, uri) ?: continue
+            document.insertString(insertion.offset, insertion.text)
+        }
+        PsiDocumentManager.getInstance(project).commitDocument(document)
+    }
+
+    private fun showWarning(editor: Editor, plan: Plan) {
+        val messages = listOfNotNull(
+            plan.wrapper.warning?.takeIf { it.isNotBlank() },
+            plan.undeclaredPackages.takeIf { it.isNotEmpty() }?.let {
+                FlutterWidgetWrapperBundle.message("wrap.import.undeclared", it.joinToString(", "), it.joinToString(" "))
+            },
+        )
+        if (messages.isEmpty()) return
         if (ApplicationManager.getApplication().isHeadlessEnvironment) return
-        HintManager.getInstance().showInformationHint(editor, warning)
+        HintManager.getInstance().showInformationHint(editor, messages.joinToString(" "))
     }
 
     /**

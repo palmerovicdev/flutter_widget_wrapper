@@ -17,6 +17,7 @@ import com.palmerodev.fww.model.WidgetWrapper
 import com.palmerodev.fww.wrappers.BuiltInWrappers
 import com.palmerodev.fww.wrappers.TabStops
 import com.palmerodev.fww.wrappers.TemplateLint
+import com.palmerodev.fww.wrappers.WrapperImports
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -52,6 +53,7 @@ class WrapperFormDialog(
     private val warningField = JBTextField()
     private val slotsField = JBTextField()
     private val childKindField = ComboBox(ChildKind.ALL.toTypedArray())
+    private val importsField = JBTextField()
 
     var result: WidgetWrapper? = null
         private set
@@ -99,6 +101,7 @@ class WrapperFormDialog(
         warningField.text = w.warning.orEmpty()
         slotsField.text = w.allowedSlots.joinToString(", ")
         childKindField.item = w.childKind
+        importsField.text = WrapperImports.declared(w).joinToString(", ")
     }
 
     override fun createCenterPanel(): JComponent {
@@ -137,6 +140,7 @@ class WrapperFormDialog(
         addRow(panel, row++, "settings.form.label.warning", warningField)
         addRow(panel, row++, "settings.form.label.slots", slotsField)
         addRow(panel, row++, "settings.form.label.childKind", childKindField)
+        addRow(panel, row++, "settings.form.label.imports", importsField)
 
         previewArea.preferredSize = Dimension(520, 140)
         addRow(panel, row++, "settings.detail.preview", previewArea, fillVertical = true)
@@ -205,6 +209,9 @@ class WrapperFormDialog(
         TemplateLint.check(templateArea.text.split('\n')).firstOrNull()?.let { problem ->
             return ValidationInfo(lintMessage(problem), templateArea)
         }
+        parseImports().flatMap { it.split('|') }.firstOrNull { !WrapperImports.isValidUri(it) }?.let { uri ->
+            return ValidationInfo(FlutterWidgetWrapperBundle.message("settings.form.error.import", uri), importsField)
+        }
         if (DartSyntax.hasErrors(renderPreview())) {
             return ValidationInfo(
                 FlutterWidgetWrapperBundle.message("settings.form.warning.syntax"),
@@ -233,6 +240,7 @@ class WrapperFormDialog(
             enabled = initial?.enabled ?: true,
             allowedSlots = parseList(slotsField.text),
             childKind = childKindField.item ?: ChildKind.ANY,
+            imports = parseImports(),
         )
         super.doOKAction()
     }
@@ -254,6 +262,9 @@ class WrapperFormDialog(
         }
         return TextFieldWithAutoCompletion(ProjectManager.getInstance().defaultProject, provider, false, "")
     }
+
+    private fun parseImports(): List<String> =
+        parseList(importsField.text).map(WrapperImports::normalizeSpec).filter { it.isNotEmpty() }
 
     private fun parseList(text: String): List<String> =
         text.split(',').map { it.trim() }.filter { it.isNotEmpty() }

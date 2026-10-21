@@ -28,6 +28,7 @@ import com.palmerodev.fww.wrappers.BuiltInWrappers
 import com.palmerodev.fww.wrappers.Presets
 import com.palmerodev.fww.wrappers.ProjectWrappers
 import com.palmerodev.fww.wrappers.TabStops
+import com.palmerodev.fww.wrappers.WrapperImports
 import com.palmerodev.fww.wrappers.WrapperJsonCodec
 import com.palmerodev.fww.wrappers.WrapperTemplateEngine
 import com.palmerodev.fww.wrappers.WrapperValidator
@@ -72,6 +73,7 @@ class WrapperSettingsConfigurable : Configurable {
     private val previewArea = DartCodeField.create(viewer = true)
     private val groupWrappersCheck = JBCheckBox(FlutterWidgetWrapperBundle.message("settings.option.group"))
     private val caretOnNameCheck = JBCheckBox(FlutterWidgetWrapperBundle.message("settings.option.caretOnName"))
+    private val autoImportCheck = JBCheckBox(FlutterWidgetWrapperBundle.message("settings.option.autoImport"))
     private var rootPanel: JComponent? = null
 
     override fun getDisplayName(): String = FlutterWidgetWrapperBundle.message("settings.title")
@@ -102,6 +104,7 @@ class WrapperSettingsConfigurable : Configurable {
             border = JBUI.Borders.emptyTop(8)
             add(groupWrappersCheck)
             add(caretOnNameCheck)
+            add(autoImportCheck)
             add(JBLabel(FlutterWidgetWrapperBundle.message("settings.project.hint", ProjectWrappers.FILE_NAME)).apply {
                 foreground = JBColor.GRAY
                 border = JBUI.Borders.emptyTop(6)
@@ -337,7 +340,11 @@ class WrapperSettingsConfigurable : Configurable {
             else -> FlutterWidgetWrapperBundle.message("settings.detail.inside", w.allowedParents.joinToString(", "))
         }
         val state = if (w.enabled) "" else "  ·  ${FlutterWidgetWrapperBundle.message("settings.detail.disabled")}"
-        return "$kind  ·  ${w.category}  ·  $scope$state"
+        val imports = WrapperImports.declared(w).takeIf { it.isNotEmpty() }?.let { specs ->
+            val names = specs.joinToString(", ") { spec -> spec.split('|').joinToString(" | ") { it.substringAfterLast('/') } }
+            "  ·  ${FlutterWidgetWrapperBundle.message("settings.detail.imports", names)}"
+        }.orEmpty()
+        return "$kind  ·  ${w.category}  ·  $scope$state$imports"
     }
 
     // ---- toolbar actions ---------------------------------------------------
@@ -550,12 +557,14 @@ class WrapperSettingsConfigurable : Configurable {
         disabledBuiltIns != settings.disabledBuiltInNames ||
             customWrappers != WrapperJsonCodec.parseList(settings.customWrappersJson) ||
             groupWrappersCheck.isSelected != settings.groupWrappers ||
-            caretOnNameCheck.isSelected != settings.caretOnNameOnly
+            caretOnNameCheck.isSelected != settings.caretOnNameOnly ||
+            autoImportCheck.isSelected != settings.autoImport
 
     override fun apply() {
         settings.disabledBuiltInNames = disabledBuiltIns.toMutableSet()
         settings.groupWrappers = groupWrappersCheck.isSelected
         settings.caretOnNameOnly = caretOnNameCheck.isSelected
+        settings.autoImport = autoImportCheck.isSelected
         settings.customWrappersJson =
             if (customWrappers.isEmpty()) "" else WrapperJsonCodec.encodeList(customWrappers)
         WrapIntentionRegistrar.syncRegistrations()
@@ -565,6 +574,7 @@ class WrapperSettingsConfigurable : Configurable {
         reloadModelFromSettings()
         groupWrappersCheck.isSelected = settings.groupWrappers
         caretOnNameCheck.isSelected = settings.caretOnNameOnly
+        autoImportCheck.isSelected = settings.autoImport
         rebuildTree(select = pendingSelection)
         pendingSelection = null
     }

@@ -17,6 +17,11 @@ data class WidgetWrapper(
     val allowedSlots: List<String> = emptyList(),
     /** What the wrapped widget must be: [ChildKind.ANY], [ChildKind.BOX] or [ChildKind.SLIVER]. */
     val childKind: String = ChildKind.ANY,
+    /**
+     * Libraries the template needs (e.g. `package:flutter_bloc/flutter_bloc.dart`), added to
+     * the file on wrap when missing. `a|b` lists alternatives: any of them is enough.
+     */
+    val imports: List<String> = emptyList(),
 )
 
 object ChildKind {

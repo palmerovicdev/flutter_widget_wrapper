@@ -14,6 +14,7 @@ import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.psi.PsiFile
 import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.detection.FlutterWidgetDetector
+import com.palmerodev.fww.detection.WidgetLibrary
 import com.palmerodev.fww.detection.WrappableFieldDetector
 import com.palmerodev.fww.model.WidgetWrapper
 import com.palmerodev.fww.settings.FlutterWrapperSettings
@@ -59,6 +60,7 @@ class CreateWrapperFromWidgetIntention : BaseIntentionAction() {
             template = templateLines,
             description = FlutterWidgetWrapperBundle.message("intention.createWrapper.description", detected.name),
             category = "Custom",
+            imports = listOfNotNull(WidgetLibrary.importFor(file, detected)),
         )
 
         ApplicationManager.getApplication().invokeLater {
@@ -100,7 +102,7 @@ class CreateWrapperFromWidgetIntention : BaseIntentionAction() {
     }
 
     /** The widget source with its child slot replaced by the `${widget}` placeholder. */
-    private fun templateFor(widgetText: String): String? {
+    internal fun templateFor(widgetText: String): String? {
         val field = WrappableFieldDetector.find(widgetText) ?: return null
         val replacement = if (field.isList) $$"[${widget}]" else $$"${widget}"
         return normalizeIndent(

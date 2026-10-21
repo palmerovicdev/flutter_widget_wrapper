@@ -25,7 +25,9 @@ Everything goes through the Gradle Wrapper (`./gradlew`):
 - Add `"-PlocalIdePath=/Applications/IntelliJ IDEA.app"` (or set `localIdePath` in
   `~/.gradle/gradle.properties`) to build/test against the installed IDE instead of
   downloading 2026.1.5; bytecode instrumentation is skipped in that mode. Do not trigger
-  IDE downloads just to test.
+  IDE downloads just to test. `localIdePath` is set in `$GRADLE_USER_HOME/gradle.properties`
+  on the dev machine; release builds pass an empty `-PlocalIdePath=` to use the cached
+  2026.1.5 instead.
 
 The user typically runs and debugs from IntelliJ IDEA Ultimate using the `.run/`
 configurations (Run Tests, Run Plugin, Run Verifications) rather than the CLI.
@@ -112,6 +114,13 @@ hint). Everything funnels through it: `WrapWithWidgetIntention` (always
 `ReplaceWrapperIntention`, `WidgetSurroundDescriptor` (Surround With) and
 `WrapperPostfixTemplateProvider`. `WrapTargets` answers "which widget / which wrappers at
 the caret" and honors the `caretOnNameOnly` setting.
+
+Imports: `WidgetWrapper.imports` (URIs, `a|b` = alternatives). `WrapApplier.plan` asks
+`WrapperImports.missing` (coverage incl. `material.dart` ⊃ `widgets.dart`, alternative
+picked from the nearest `pubspec.yaml`) and the apply step inserts them with
+`DartImports` (text-based directive scanner, `directives_ordering` placement) in the same
+command — after the wrap for direct edits, via `startWrap(extraEdits)` for live templates.
+`WidgetLibrary` resolves a widget's library for `CreateWrapperFromWidgetIntention`.
 
 Tab-stop markers are parsed by `TabStops` (`${name:a|b}` = choices, rendered with a
 lookup `Expression` in `LiveTemplateWrapEngine`); `TemplateLint` does structural checks

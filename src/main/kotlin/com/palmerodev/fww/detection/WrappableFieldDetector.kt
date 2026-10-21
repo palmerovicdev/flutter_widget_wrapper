@@ -2,9 +2,14 @@ package com.palmerodev.fww.detection
 
 object WrappableFieldDetector {
 
-    val WRAPPABLE_FIELDS: Set<String> = setOf("child", "children", "sliver", "slivers")
+    val WRAPPABLE_FIELDS: Set<String> = setOf("child", "children", "sliver", "slivers", "builder")
     private val LIST_FIELDS: Set<String> = setOf("children", "slivers")
+    private val BUILDER_FIELDS: Set<String> = setOf("builder")
 
+    /**
+     * [valueStart]..[valueEnd] is the part that becomes `${widget}`: the whole value of a
+     * `child:`-like field, or the widget a `builder:` closure returns.
+     */
     data class Detected(
         val fieldName: String,
         val valueStart: Int,
@@ -12,6 +17,11 @@ object WrappableFieldDetector {
         val isList: Boolean,
     )
 
+    /**
+     * The first top-level `child`/`children`/`sliver`/`slivers` argument; otherwise the
+     * `builder:` closure (e.g. `BlocBuilder`). A `child:` wins over `builder:`, so
+     * `AnimatedBuilder(builder: ..., child: X)` keeps templating its child.
+     */
     fun find(widgetText: String): Detected? {
         val openParen = widgetText.indexOf('(')
         if (openParen < 0) return null
@@ -19,6 +29,7 @@ object WrappableFieldDetector {
         var i = openParen + 1
         val n = widgetText.length
         val depth = IntArray(1)
+        var builder: Detected? = null
 
         while (i < n) {
             val c = widgetText[i]
@@ -40,7 +51,7 @@ object WrappableFieldDetector {
                     i++
                 }
                 c == ')' || c == ']' || c == '}' -> {
-                    if (depth[0] == 0) return null
+                    if (depth[0] == 0) return builder
                     depth[0]--
                     i++
                 }
@@ -54,20 +65,134 @@ object WrappableFieldDetector {
                         j++
                         while (j < n && widgetText[j].isWhitespace()) j++
                         val valStart = j
-                        val valEnd = findValueEnd(widgetText, j) ?: return null
-                        return Detected(
-                            fieldName = ident,
-                            valueStart = valStart,
-                            valueEnd = valEnd,
-                            isList = ident in LIST_FIELDS,
-                        )
+                        val valEnd = findValueEnd(widgetText, j) ?: return builder
+                        if (ident !in BUILDER_FIELDS) {
+                            return Detected(
+                                fieldName = ident,
+                                valueStart = valStart,
+                                valueEnd = valEnd,
+                                isList = ident in LIST_FIELDS,
+                            )
+                        }
+                        if (builder == null) {
+                            builder = returnedWidget(widgetText, valStart, valEnd)?.let { (start, end) ->
+                                Detected(fieldName = ident, valueStart = start, valueEnd = end, isList = false)
+                            }
+                        }
+                        j = valEnd
                     }
                     i = j
                 }
                 else -> i++
             }
         }
+        return builder
+    }
+
+    /**
+     * The widget a closure returns: the expression after `=>`, or that of the last `return`
+     * directly in a block body. Null for tear-offs (`builder: _build`) and bodies without one.
+     */
+    private fun returnedWidget(text: String, start: Int, end: Int): Pair<Int, Int>? {
+        if (text[start] != '(') return null
+        val paramsEnd = skipBalanced(text, start) ?: return null
+        val bodyStart = skipWhitespace(text, paramsEnd)
+        return when {
+            text.startsWith("=>", bodyStart) -> {
+                val exprStart = skipWhitespace(text, bodyStart + 2)
+                if (exprStart < end) exprStart to end else null
+            }
+            bodyStart < end && text[bodyStart] == '{' -> lastReturn(text, bodyStart)
+            else -> null
+        }
+    }
+
+    private fun lastReturn(text: String, open: Int): Pair<Int, Int>? {
+        val close = (skipBalanced(text, open) ?: return null) - 1
+        var last: Pair<Int, Int>? = null
+        var depth = 0
+        var i = open + 1
+        while (i < close) {
+            val skipped = skipLiteral(text, i)
+            if (skipped != null) {
+                i = skipped
+                continue
+            }
+            when (text[i]) {
+                '(', '[', '{' -> depth++
+                ')', ']', '}' -> depth--
+                'r' if depth == 0 && isKeywordAt(text, i, "return") -> {
+                    val exprStart = skipWhitespace(text, i + "return".length)
+                    val semicolon = statementEnd(text, exprStart, close) ?: return last
+                    val exprEnd = trimTrailingWhitespace(text, exprStart, semicolon)
+                    if (exprEnd > exprStart) last = exprStart to exprEnd
+                    i = semicolon
+                }
+            }
+            i++
+        }
+        return last
+    }
+
+    /** Index of the `;` ending the statement that starts at [from]. */
+    private fun statementEnd(text: String, from: Int, limit: Int): Int? {
+        var depth = 0
+        var i = from
+        while (i < limit) {
+            val skipped = skipLiteral(text, i)
+            if (skipped != null) {
+                i = skipped
+                continue
+            }
+            when (text[i]) {
+                '(', '[', '{' -> depth++
+                ')', ']', '}' -> depth--
+                ';' if depth == 0 -> return i
+            }
+            i++
+        }
         return null
+    }
+
+    /** Index just past the bracket closing the one at [open]. */
+    private fun skipBalanced(text: String, open: Int): Int? {
+        var depth = 0
+        var i = open
+        while (i < text.length) {
+            val skipped = skipLiteral(text, i)
+            if (skipped != null) {
+                i = skipped
+                continue
+            }
+            when (text[i]) {
+                '(', '[', '{' -> depth++
+                ')', ']', '}' -> if (--depth == 0) return i + 1
+            }
+            i++
+        }
+        return null
+    }
+
+    /** Index just past the comment or string starting at [i]; null when there is none. */
+    private fun skipLiteral(text: String, i: Int): Int? = when {
+        text.startsWith("//", i) -> text.indexOf('\n', i).let { if (it < 0) text.length else it }
+        text.startsWith("/*", i) -> text.indexOf("*/", i + 2).let { if (it < 0) text.length else it + 2 }
+        text[i] == '"' || text[i] == '\'' -> skipString(text, i, text[i])
+        else -> null
+    }
+
+    private fun isKeywordAt(text: String, i: Int, keyword: String): Boolean {
+        if (!text.startsWith(keyword, i)) return false
+        val before = text.getOrNull(i - 1)
+        val after = text.getOrNull(i + keyword.length)
+        return (before == null || !(before.isLetterOrDigit() || before == '_')) &&
+            (after == null || !(after.isLetterOrDigit() || after == '_'))
+    }
+
+    private fun skipWhitespace(text: String, from: Int): Int {
+        var i = from
+        while (i < text.length && text[i].isWhitespace()) i++
+        return i
     }
 
     private fun findValueEnd(text: String, start: Int): Int? {

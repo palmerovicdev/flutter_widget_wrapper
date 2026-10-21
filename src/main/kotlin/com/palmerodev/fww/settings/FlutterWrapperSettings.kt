@@ -23,6 +23,9 @@ class FlutterWrapperSettings : PersistentStateComponent<FlutterWrapperSettings> 
     /** Offer wrappers only when the caret is on the constructor name, not in its arguments. */
     var caretOnNameOnly: Boolean = false
 
+    /** Add the imports a wrapper declares when the file lacks them. */
+    var autoImport: Boolean = true
+
     override fun getState(): FlutterWrapperSettings = this
 
     override fun loadState(state: FlutterWrapperSettings) {

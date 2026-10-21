@@ -4,7 +4,7 @@ Flutter Widget Wrapper is an IntelliJ Platform plugin that adds context-aware
 Flutter widget wrappers to the `Alt+Enter` intention menu. Wrap a widget without
 manually moving code, fixing indentation, or rebuilding its constructor.
 
-![Version](https://img.shields.io/badge/version-1.2.4-blue)
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2026.1.5%2B-purple)
 
@@ -23,6 +23,9 @@ manually moving code, fixing indentation, or rebuilding its constructor.
   (`opacity`, `alignment`, …); fields with choices open a completion popup.
 - Keeps `const` code compiling: wrapping with a closure (e.g. `GestureDetector`)
   removes the enclosing `const`.
+- Adds the imports a wrapper needs (e.g. `package:flutter_bloc/flutter_bloc.dart` for
+  `BlocBuilder`) in their place among the file's imports, and warns when the package
+  is missing from `pubspec.yaml`.
 - Several entry points: `Alt+Enter`, Surround With (`Ctrl+Alt+T` / `⌥⌘T`), postfix
   templates (`Text('a').opacity` + Tab), and an optional single **Wrap with…** popup.
 - Wraps several selected siblings of a `Row`/`Column`/`Flex` `children:` list with
@@ -33,7 +36,8 @@ manually moving code, fixing indentation, or rebuilding its constructor.
 - Preserves indentation and reformats the generated Dart code.
 - Custom wrappers with a Dart editor, live preview, validation and JSON import/export;
   team wrappers shared through a `.flutter-wrappers.json` file in the project.
-- Creates a reusable custom wrapper from an existing Flutter widget.
+- Creates a reusable custom wrapper from an existing Flutter widget, including
+  builders such as `BlocBuilder`, `Consumer` or `StreamBuilder`.
 
 ## Usage
 
@@ -67,7 +71,8 @@ at `${end}` when present.
 3. **Match** which wrappers are valid for that context (`allowedParents`,
    `disallowedParents`, `requiresDirectParent`).
 4. **Apply** the wrapper template: substitute `${widget}`, then either start a
-   live-template session for tab-stops or reformat the range as plain text.
+   live-template session for tab-stops or reformat the range as plain text. Missing
+   imports declared by the wrapper are added in the same step.
 
 ## Configuration
 
@@ -79,7 +84,8 @@ Open **Settings/Preferences | Tools | Flutter Widget Wrapper** to:
 - add optional presets (**Add Presets…**);
 - import or export custom wrapper definitions as JSON (export lets you pick which);
 - group wrappers under a single **Wrap with…** entry and restrict them to the
-  constructor name.
+  constructor name;
+- turn off adding the imports a wrapper needs.
 
 Hover the **?** icon next to **Template** for an in-IDE summary of the template
 syntax described below.
@@ -219,8 +225,29 @@ Example with tab-stops and parent rules:
 
 Optional fields: `enabled`, `allowedParents`, `disallowedParents`,
 `requiresDirectParent`, `allowedSlots`, `childKind`, `warning`, `description`,
-`category`.
+`category`, `imports`.
 Templates may be a string or an array of lines.
+
+### Imports
+
+`imports` lists the libraries the template needs. When you wrap, each one the file
+does not import yet is added in its place: `dart:`, then `package:`, then relative
+imports, sorted alphabetically. `package:flutter/material.dart` and `cupertino.dart`
+count as importing `widgets.dart`. Write `a|b` when either library works; the plugin
+picks the one in your `pubspec.yaml`. If the package is not a dependency, the import
+is added anyway and a hint says so.
+
+```json
+{
+  "name": "MyConsumer",
+  "template": ["Consumer(", "  builder: (context, ref, child) => ${widget},", ")"],
+  "imports": [
+    "package:flutter_riverpod/flutter_riverpod.dart|package:hooks_riverpod/hooks_riverpod.dart"
+  ]
+}
+```
+
+Built-ins and presets already declare theirs. `part of` files are left untouched.
 
 ### Team wrappers (project file)
 
@@ -233,9 +260,15 @@ project only. Changes to the file are picked up automatically. In `Alt+Enter`, t
 ### Create wrapper from an existing widget
 
 Place the caret in a widget whose content lives in `child`, `children`,
-`sliver`, or `slivers`, open `Alt+Enter`, and choose
+`sliver`, `slivers`, or a `builder:` closure (`BlocBuilder`, `Consumer`,
+`StreamBuilder`…), open `Alt+Enter`, and choose
 **Create wrapper from _WidgetName_**. The plugin turns that slot into
-`${widget}` and opens the custom-wrapper editor.
+`${widget}` and opens the custom-wrapper editor. For a builder, the widget the
+closure returns becomes `${widget}` (after `=>`, or the last `return` of the body),
+so any early returns such as a loading indicator are kept in the wrapper.
+The editor also fills in **Imports** with the library that provides the widget
+(e.g. `package:flutter/material.dart` for a `Card`), resolved through the Dart
+analyzer.
 
 ## Installation
 

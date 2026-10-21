@@ -5,6 +5,9 @@ import com.palmerodev.fww.model.WidgetWrapper
 
 object BuiltInWrappers {
 
+    private const val WIDGETS = "package:flutter/widgets.dart"
+    private const val MATERIAL = "package:flutter/material.dart"
+
     val ALL: List<WidgetWrapper> = listOf(
         WidgetWrapper(
             name = "AnimatedSize",
@@ -17,6 +20,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with AnimatedSize",
             category = "Animation",
+            imports = listOf(WIDGETS),
         ),
         WidgetWrapper(
             name = "GestureDetector",
@@ -28,6 +32,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with GestureDetector",
             category = "Interaction",
+            imports = listOf(WIDGETS),
         ),
         WidgetWrapper(
             name = "InkWell",
@@ -39,6 +44,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with InkWell",
             category = "Interaction",
+            imports = listOf(MATERIAL),
             warning = "InkWell needs a Material ancestor for ripple effects to be visible.",
         ),
         WidgetWrapper(
@@ -51,6 +57,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with Align",
             category = "Layout",
+            imports = listOf(WIDGETS),
         ),
         WidgetWrapper(
             name = "Expanded",
@@ -61,6 +68,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with Expanded",
             category = "Layout",
+            imports = listOf(WIDGETS),
             allowedParents = listOf("Row", "Column", "Flex"),
             requiresDirectParent = true,
         ),
@@ -73,6 +81,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with Flexible",
             category = "Layout",
+            imports = listOf(WIDGETS),
             allowedParents = listOf("Row", "Column", "Flex"),
             requiresDirectParent = true,
         ),
@@ -87,6 +96,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with Stack",
             category = "Layout",
+            imports = listOf(WIDGETS),
         ),
         WidgetWrapper(
             name = "Positioned",
@@ -99,6 +109,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with Positioned",
             category = "Layout",
+            imports = listOf(WIDGETS),
             allowedParents = listOf("Stack"),
             requiresDirectParent = true,
         ),
@@ -112,6 +123,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with Opacity",
             category = "Visual",
+            imports = listOf(WIDGETS),
         ),
         WidgetWrapper(
             name = "SingleChildScrollView",
@@ -122,6 +134,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with SingleChildScrollView",
             category = "Scrolling",
+            imports = listOf(WIDGETS),
         ),
         WidgetWrapper(
             name = "SafeArea",
@@ -132,6 +145,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps with SafeArea",
             category = "Layout",
+            imports = listOf(WIDGETS),
         ),
         WidgetWrapper(
             name = "SliverToBoxAdapter",
@@ -142,6 +156,7 @@ object BuiltInWrappers {
             ),
             description = "Puts a box widget into a sliver list",
             category = "Slivers",
+            imports = listOf(WIDGETS),
             allowedSlots = listOf("sliver", "slivers"),
             childKind = ChildKind.BOX,
         ),
@@ -155,6 +170,7 @@ object BuiltInWrappers {
             ),
             description = "Wraps a sliver with SliverPadding",
             category = "Slivers",
+            imports = listOf(WIDGETS),
             allowedSlots = listOf("sliver", "slivers"),
             childKind = ChildKind.SLIVER,
         ),

@@ -32,7 +32,8 @@ object LiveTemplateWrapEngine {
 
     /**
      * Replaces `[startOffset, endOffset)` in [editor] with the rendered wrapper and starts the
-     * template. [constKeywords] (all before [startOffset]) are removed in the same command. Must be called outside an enclosing write action — [TemplateManager.startTemplate]
+     * template. [constKeywords] (all before [startOffset]) are removed in the same command, and
+     * [extraEdits] (e.g. adding imports) run in it too. Must be called outside an enclosing write action — [TemplateManager.startTemplate]
      * runs its own command (hence `WrapWithWidgetIntention.startInWriteAction()` returns false
      * for marker-bearing wrappers).
      */
@@ -45,14 +46,19 @@ object LiveTemplateWrapEngine {
         startOffset: Int,
         endOffset: Int,
         constKeywords: List<TextRange> = emptyList(),
+        extraEdits: () -> Unit = {},
     ) {
         val template = buildTemplate(project, wrapper, widgetText, baseIndent)
         val document = editor.document
         WriteCommandAction.runWriteCommandAction(project) {
             document.replaceString(startOffset, endOffset, "")
             val start = startOffset - ConstContext.removeKeywords(document, constKeywords)
+            // The marker follows the template start across edits above it.
+            val marker = document.createRangeMarker(start, start)
+            extraEdits()
             PsiDocumentManager.getInstance(project).commitDocument(document)
-            editor.caretModel.moveToOffset(start)
+            editor.caretModel.moveToOffset(marker.startOffset)
+            marker.dispose()
         }
         TemplateManager.getInstance(project).startTemplate(editor, template)
     }

@@ -92,6 +92,9 @@ Revisión de UX, UI y funcionalidades (2026-09-25). Todo lo listado está implem
 
 ## 6. Plan de versiones
 
+Las tres entregas internas (1.3–1.5) se publican juntas como **1.3.0** (2026-09-25),
+junto con "Create wrapper" sobre builders (`BlocBuilder`, `Consumer`, …).
+
 - **1.3 (implementada, sin publicar):** fallos de la sección 1, preview en todos los
   wrappers, caché de rendimiento, textos al bundle y desregistro de customs borrados.
   Pendiente para 1.4: el estado compartido `cachedText`/`cachedCount` (requiere migrar a
@@ -112,10 +115,14 @@ Revisión de UX, UI y funcionalidades (2026-09-25). Todo lo listado está implem
   hilo en lugar de estado compartido.
   Descartado/pendiente: "Deshacer" en la notificación de "Create wrapper" (hay "Open
   settings") y chips visuales para padres (hay autocompletado).
+- **1.4.0 (2026-10-09, sin publicar):** imports automáticos. Cada wrapper declara `imports`
+  (alternativas `a|b`); al envolver se añaden los que faltan en su sitio y se avisa si el
+  paquete no está en `pubspec.yaml`. "Create wrapper" rellena el import del widget.
 
 ## Notas de entorno
 
-- Probar con la IDE instalada (`/Applications/IntelliJ IDEA.app`, 2026.2.2) o las ya cacheadas
-  en Gradle (2026.1.5, 262.10315.125); no descargar IDEs nuevas.
+- Probar con la IDE instalada (`~/Applications/IntelliJ IDEA.app`, 2026.2.3; antes estaba en
+  `/Applications`) o las ya cacheadas en Gradle (2026.1.5, 262.10315.125); no descargar IDEs
+  nuevas.
 - Hecho: `-PlocalIdePath=/Applications/IntelliJ IDEA.app` compila y testea contra la IDE
   instalada (ver `CLAUDE.md`). Antes de publicar, verificar contra 2026.1.5 (mínimo).

@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.changelog.Changelog
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -6,15 +7,22 @@ plugins {
     id("org.jetbrains.intellij.platform")
 }
 
+// Set `localIdePath` (e.g. in ~/.gradle/gradle.properties) to build and test against an
+// installed IDE instead of downloading one. Releases build against 2026.1.5: pass an empty
+// `-PlocalIdePath=` to override a user-level setting.
+val localIdePath: String? = providers.gradleProperty("localIdePath").orNull?.takeIf { it.isNotBlank() }
+
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
+    // The IntelliJ Platform Settings plugin disables Kotlin's automatic stdlib
+    // dependency so the IDE-provided version is used at runtime. Keep it on the
+    // compile classpath so kotlinc can resolve Kotlin built-ins.
+    compileOnly(kotlin("stdlib"))
+
     testImplementation(libs.junit)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        // Set `localIdePath` (e.g. in ~/.gradle/gradle.properties) to build and test against
-        // an installed IDE instead of downloading one. Releases still build against 2026.1.5.
-        val localIdePath = providers.gradleProperty("localIdePath").orNull
         if (localIdePath != null) local(localIdePath) else intellijIdea("2026.1.5")
         testFramework(TestFrameworkType.Platform)
 
@@ -26,7 +34,7 @@ dependencies {
 intellijPlatform {
     // Bytecode instrumentation needs a compiler matching the IDE build, which a local IDE
     // does not ship; the plugin has no .form files, so it is skipped for local builds.
-    if (providers.gradleProperty("localIdePath").isPresent) instrumentCode = false
+    if (localIdePath != null) instrumentCode = false
 
     pluginConfiguration {
         ideaVersion {
@@ -38,6 +46,19 @@ intellijPlatform {
 }
 
 tasks {
+    patchPluginXml {
+        // Notes of the version being built; Unreleased while it has no section of its own.
+        val pluginVersion = project.version.toString()
+        changeNotes.set(provider {
+            changelog.renderItem(
+                (changelog.getOrNull(pluginVersion) ?: changelog.getUnreleased())
+                    .withHeader(false)
+                    .withEmptySections(false),
+                Changelog.OutputType.HTML
+            )
+        })
+    }
+
     buildSearchableOptions {
         enabled = false
     }

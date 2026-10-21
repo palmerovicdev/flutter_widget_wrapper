@@ -53,6 +53,9 @@ object WrapperJsonCodec {
             obj.add("allowedSlots", JsonArray().also { arr -> w.allowedSlots.forEach { arr.add(it) } })
         }
         if (w.childKind != ChildKind.ANY) obj.addProperty("childKind", w.childKind)
+        if (w.imports.isNotEmpty()) {
+            obj.add("imports", JsonArray().also { arr -> w.imports.forEach { arr.add(it) } })
+        }
         return obj
     }
 
@@ -71,6 +74,9 @@ object WrapperJsonCodec {
             warning = obj.stringOrNull("warning"),
             allowedSlots = obj.stringArrayOr("allowedSlots", emptyList()),
             childKind = obj.stringOrNull("childKind")?.takeIf { it in ChildKind.ALL } ?: ChildKind.ANY,
+            imports = obj.stringArrayOr("imports", emptyList())
+                .map(WrapperImports::normalizeSpec)
+                .filter { it.isNotEmpty() },
         )
     }
 

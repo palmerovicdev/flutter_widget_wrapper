@@ -5,8 +5,30 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-09
+
 ### Added
 
+- Wrapping adds the imports the wrapper needs. Each wrapper lists them in `imports`
+  (alternatives as `a|b`). They are inserted following `directives_ordering`, in the
+  same undo step as the wrap. `material.dart`/`cupertino.dart` count as `widgets.dart`.
+  Built-ins and presets declare theirs; unchanged copies of presets added earlier
+  inherit them.
+- A hint warns when an added import's package is not in `pubspec.yaml`; between
+  alternatives, the one in `pubspec.yaml` is preferred.
+- **Create wrapper from _Widget_** fills in the import of the widget's library
+  (`src/` files map to their public library, e.g. `material.dart`).
+- Wrapper editor: **Imports** field (accepts a pasted `import '…';`). Settings: option
+  to turn auto-import off; the detail line shows each wrapper's imports.
+
+## [1.3.0] - 2026-09-25
+
+### Added
+
+- **Create wrapper from _Widget_** works on builders: with the caret on a `BlocBuilder`,
+  `Consumer`, `StreamBuilder`… the widget returned by its `builder:` closure becomes
+  `${widget}`, keeping type arguments and early returns. A `child:` still takes
+  precedence (e.g. `AnimatedBuilder`).
 - **Replace _Widget_ with…**: with the caret on a wrapper's name (e.g. `Flexible`), swap
   it for another wrapper while keeping its `child:` (or the elements of `children:`).
 - Team wrappers: a `.flutter-wrappers.json` file in the project root (same format as
@@ -29,7 +51,6 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   names in the parent fields, and fields for slots and child kind.
 - The wrapper editor rejects unclosed `${` markers, defaults on the reserved `widget`/`end`
   markers and unbalanced brackets, and warns when the preview is not valid Dart.
-
 - Surround With (`Ctrl+Alt+T` / `⌥⌘T`) for Flutter widgets: select a widget, or several
   siblings of a Row/Column/Flex `children:` list, and pick a wrapper.
 - Wrapping several selected siblings works with any wrapper whose `${widget}` sits in a
@@ -45,7 +66,6 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   while typing, and offers existing categories in an editable combo box.
 - Settings: speed search in the wrapper tree, double-click to edit, and Dart highlighting
   in the template and preview panes.
-
 - `Alt+Enter` preview for every wrapper. Wrappers with tab-stops (AnimatedSize,
   GestureDetector, InkWell, Align, Positioned, Opacity) had no preview because they
   run as live templates; the preview now shows them with their default values.
