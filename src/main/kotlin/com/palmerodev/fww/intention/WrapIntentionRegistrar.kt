@@ -72,6 +72,29 @@ class WrapIntentionRegistrar : ProjectActivity {
             }
         }
 
+        /**
+         * Unregisters every intention this plugin added. The platform only drops intentions
+         * declared as extensions when the plugin is unloaded, not those from `addAction`.
+         */
+        fun unregisterAll() {
+            synchronized(lock) {
+                val manager = IntentionManager.getInstance()
+                for (action in manager.intentionActions) {
+                    val id = implementationIdOf(action)
+                    if (id in SINGLETON_IDS || RegisteredWrapWithWidgetIntention.wrapperNameOf(id) != null) {
+                        manager.unregisterIntention(action)
+                    }
+                }
+            }
+        }
+
+        private val SINGLETON_IDS = setOf(
+            CreateWrapperFromWidgetIntention::class.java.name,
+            WrapSelectionIntention::class.java.name,
+            WrapWithChooserIntention::class.java.name,
+            ReplaceWrapperIntention::class.java.name,
+        )
+
         /** Built-in names first, then valid custom and project ones, de-duplicated. */
         private fun wrapperNames(): Set<String> {
             // getInstance(), not getInstanceOrNull(): during startup registration the

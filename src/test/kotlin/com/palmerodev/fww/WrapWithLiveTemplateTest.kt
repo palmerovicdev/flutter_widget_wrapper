@@ -1,6 +1,8 @@
 package com.palmerodev.fww
 
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
+import com.intellij.openapi.command.undo.UndoManager
+import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.palmerodev.fww.intention.WrapIntentionRegistrar
 import com.palmerodev.fww.intention.WrapWithWidgetIntention
@@ -31,6 +33,30 @@ class WrapWithLiveTemplateTest : BasePlatformTestCase() {
         assertTrue("Expected the default opacity value. Got:\n$result", result.contains("opacity: 0.5"))
         assertTrue("Expected the wrapped widget preserved. Got:\n$result", result.contains("Text('hi')"))
         assertFalse("Raw markers should be gone. Got:\n$result", result.contains("\${"))
+    }
+
+    fun `test undoing a marker wrap never drops the widget`() {
+        TemplateManagerImpl.setTemplateTesting(testRootDisposable)
+        WrapIntentionRegistrar.syncRegistrations()
+        myFixture.configureByText("main.dart", dart("Text('hi');"))
+        val original = myFixture.editor.document.text
+        myFixture.editor.caretModel.moveToOffset(original.indexOf("Text") + 2)
+
+        WrapWithWidgetIntention("Opacity").invoke(project, myFixture.editor, myFixture.file)
+        assertTrue("Expected Opacity wrapper", myFixture.editor.document.text.contains("Opacity("))
+
+        // Undo until the original is back; the fixture's own setup leaves earlier undo steps.
+        val undoManager = UndoManager.getInstance(project)
+        val textEditor = TextEditorProvider.getInstance().getTextEditor(myFixture.editor)
+        var steps = 0
+        while (myFixture.editor.document.text != original && undoManager.isUndoAvailable(textEditor)) {
+            undoManager.undo(textEditor)
+            steps++
+            val text = myFixture.editor.document.text
+            assertTrue("Undo step $steps lost the widget. Got:\n$text", text.contains("Text('hi')"))
+        }
+        assertEquals(original, myFixture.editor.document.text)
+        assertEquals("The wrap should take a single undo step", 1, steps)
     }
 
     fun `test markerless wrapper still edits the document directly`() {

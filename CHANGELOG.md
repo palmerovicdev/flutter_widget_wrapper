@@ -5,6 +5,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Undoing a wrap with tab-stops (e.g. Opacity) takes a single step; before, an
+  intermediate step left the code without the wrapped widget.
+- Updating or disabling the plugin without restarting the IDE removes its intentions;
+  before, the old ones stayed in Alt+Enter and an update didn't register the new ones.
+
 ## [1.4.0] - 2026-10-09
 
 ### Added

@@ -38,4 +38,9 @@ object ProjectWrappers {
     /** Project wrappers of every open project, for callers without a project. */
     fun fromOpenProjects(): List<WidgetWrapper> =
         ProjectManager.getInstance().openProjects.flatMap(::load)
+
+    /** Drops the cache from every open project, so no project keeps this plugin's classes. */
+    fun clearCaches() {
+        ProjectManager.getInstance().openProjects.forEach { it.putUserData(CACHE, null) }
+    }
 }

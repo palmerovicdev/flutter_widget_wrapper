@@ -80,6 +80,8 @@
     <applicationListeners>
         <listener class="com.palmerodev.fww.intention.ProjectWrappersListener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener class="com.palmerodev.fww.intention.PluginUnloadListener"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
 </idea-plugin>

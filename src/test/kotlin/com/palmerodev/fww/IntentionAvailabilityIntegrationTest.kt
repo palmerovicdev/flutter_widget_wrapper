@@ -1,5 +1,6 @@
 package com.palmerodev.fww
 
+import com.intellij.codeInsight.intention.IntentionActionDelegate
 import com.intellij.codeInsight.intention.IntentionManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -26,6 +27,24 @@ class IntentionAvailabilityIntegrationTest : BasePlatformTestCase() {
             registered.any { it == "Wrap with Align" },
         )
     }
+
+    fun `test unregisterAll removes every plugin intention and sync restores them`() {
+        WrapIntentionRegistrar.syncRegistrations()
+        val before = pluginIntentionIds()
+        assertTrue("Expected the singletons and one intention per wrapper. Got: $before", before.size > 4)
+        try {
+            WrapIntentionRegistrar.unregisterAll()
+            assertEquals(emptySet<String>(), pluginIntentionIds())
+        } finally {
+            WrapIntentionRegistrar.syncRegistrations()
+        }
+        assertEquals(before, pluginIntentionIds())
+    }
+
+    private fun pluginIntentionIds(): Set<String> =
+        IntentionManager.getInstance().intentionActions
+            .map { (it as? IntentionActionDelegate)?.implementationClassName ?: it.javaClass.name }
+            .filterTo(mutableSetOf()) { it.startsWith("com.palmerodev.fww.") }
 
     fun `test isAvailable is true for a top level widget under the caret`() {
         myFixture.configureByText("main.dart", dart("Text('hi');"))

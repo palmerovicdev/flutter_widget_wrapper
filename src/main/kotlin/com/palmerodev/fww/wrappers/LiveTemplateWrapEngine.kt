@@ -9,11 +9,13 @@ import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.TemplateManager
 import com.intellij.codeInsight.template.TextResult
 import com.intellij.codeInsight.template.impl.ConstantNode
-import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
+import com.palmerodev.fww.FlutterWidgetWrapperBundle
 import com.palmerodev.fww.detection.ConstContext
 import com.palmerodev.fww.model.WidgetWrapper
 
@@ -33,9 +35,9 @@ object LiveTemplateWrapEngine {
     /**
      * Replaces `[startOffset, endOffset)` in [editor] with the rendered wrapper and starts the
      * template. [constKeywords] (all before [startOffset]) are removed in the same command, and
-     * [extraEdits] (e.g. adding imports) run in it too. Must be called outside an enclosing write action — [TemplateManager.startTemplate]
-     * runs its own command (hence `WrapWithWidgetIntention.startInWriteAction()` returns false
-     * for marker-bearing wrappers).
+     * [extraEdits] (e.g. adding imports) run in it too. Must be called outside an enclosing
+     * write action — [TemplateManager.startTemplate] runs in this command but outside its
+     * write action (hence `WrapWithWidgetIntention.startInWriteAction()` returns false).
      */
     fun startWrap(
         project: Project,
@@ -50,17 +52,21 @@ object LiveTemplateWrapEngine {
     ) {
         val template = buildTemplate(project, wrapper, widgetText, baseIndent)
         val document = editor.document
-        WriteCommandAction.runWriteCommandAction(project) {
-            document.replaceString(startOffset, endOffset, "")
-            val start = startOffset - ConstContext.removeKeywords(document, constKeywords)
-            // The marker follows the template start across edits above it.
-            val marker = document.createRangeMarker(start, start)
-            extraEdits()
-            PsiDocumentManager.getInstance(project).commitDocument(document)
-            editor.caretModel.moveToOffset(marker.startOffset)
-            marker.dispose()
-        }
-        TemplateManager.getInstance(project).startTemplate(editor, template)
+        val name = FlutterWidgetWrapperBundle.message("intention.text.wrap", wrapper.name)
+        // One command for the removal and the template, so a single undo restores the widget.
+        CommandProcessor.getInstance().executeCommand(project, {
+            WriteAction.run<RuntimeException> {
+                document.replaceString(startOffset, endOffset, "")
+                val start = startOffset - ConstContext.removeKeywords(document, constKeywords)
+                // The marker follows the template start across edits above it.
+                val marker = document.createRangeMarker(start, start)
+                extraEdits()
+                PsiDocumentManager.getInstance(project).commitDocument(document)
+                editor.caretModel.moveToOffset(marker.startOffset)
+                marker.dispose()
+            }
+            TemplateManager.getInstance(project).startTemplate(editor, template, false, null, null)
+        }, name, null)
     }
 
     private fun buildTemplate(

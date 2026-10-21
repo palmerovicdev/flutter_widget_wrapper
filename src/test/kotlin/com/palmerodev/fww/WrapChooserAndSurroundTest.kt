@@ -134,5 +134,9 @@ class WrapChooserAndSurroundTest : BasePlatformTestCase() {
         settings.customWrappersJson = """[{"name":"Wrap","template":["Wrap(children: [${'$'}{widget}])"]}]"""
         assertTrue(available(intention))
         assertEquals("Wrap 2 widgets with…", intention.text)
+
+        myFixture.editor.selectionModel.removeSelection()
+        assertFalse(available(intention))
+        assertEquals("Wrap selected widgets…", intention.text)
     }
 }

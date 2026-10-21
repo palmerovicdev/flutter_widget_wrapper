@@ -22,24 +22,16 @@ import javax.swing.Icon
  */
 class WrapSelectionIntention : BaseIntentionAction(), Iconable {
 
-    /** (selected count, single applicable wrapper) from the last [isAvailable] on this thread. */
-    private class Label(val count: Int, val single: String?)
-
     // One registered instance serves every editor; the platform asks for the text right
     // after isAvailable on the same thread, so a thread-local keeps concurrent editors apart.
-    private val label = ThreadLocal<Label?>()
+    // It holds the resolved text: a String, unlike a plugin class, doesn't pin the plugin's
+    // class loader to pool threads after a dynamic unload.
+    private val cachedText = ThreadLocal<String?>()
 
     override fun getFamilyName(): String = FlutterWidgetWrapperBundle.message("intention.family.wrapSelection")
 
-    override fun getText(): String {
-        val current = label.get()
-        val single = current?.single
-        return when {
-            current == null -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.generic")
-            single != null -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection", current.count, single)
-            else -> FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.chooser", current.count)
-        }
-    }
+    override fun getText(): String =
+        cachedText.get() ?: FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.generic")
 
     override fun getIcon(flags: Int): Icon = FlutterWidgetWrapperIcons.Wrap
 
@@ -47,12 +39,20 @@ class WrapSelectionIntention : BaseIntentionAction(), Iconable {
     override fun startInWriteAction(): Boolean = false
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        label.remove()
+        cachedText.remove()
         if (editor == null || file == null || !file.name.endsWith(".dart")) return false
         val selection = analyze(editor, file) ?: return false
         val wrappers = listWrappers(project)
         if (wrappers.isEmpty()) return false
-        label.set(Label(selection.elements.size, wrappers.singleOrNull()?.name))
+        val count = selection.elements.size
+        val single = wrappers.singleOrNull()?.name
+        cachedText.set(
+            if (single != null) {
+                FlutterWidgetWrapperBundle.message("intention.text.wrapSelection", count, single)
+            } else {
+                FlutterWidgetWrapperBundle.message("intention.text.wrapSelection.chooser", count)
+            },
+        )
         return true
     }
 
